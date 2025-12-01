@@ -14,7 +14,10 @@
       "Bash(git init:*)",
       "Bash(git config:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: FitnessLove nutrition tracking app\n\n- Next.js 16 with App Router\n- AI-powered meal logging via OpenAI (gpt-4o-mini)\n- Supabase backend with Magic Link authentication\n- Dashboard with 7-day meal history and scoring system\n- Settings for personalized nutrition goals\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
