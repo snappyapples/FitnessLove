@@ -123,7 +123,7 @@ function MiniRing({
 interface DayCardProps {
   data: DayData
   defaultExpanded?: boolean
-  onLogMeal: (type: MealType) => void
+  onLogMeal: (type: MealType, date: string) => void
   onEditMeal: (meal: Meal) => void
   onDeleteMeal: (mealId: string) => void
 }
@@ -207,7 +207,7 @@ export function DayCard({ data, defaultExpanded = false, onLogMeal, onEditMeal, 
               <EmptyMealSlot
                 key={type}
                 type={type}
-                onLog={() => onLogMeal(type)}
+                onLog={() => onLogMeal(type, data.date)}
               />
             )
           })}
@@ -222,7 +222,7 @@ export function DayCard({ data, defaultExpanded = false, onLogMeal, onEditMeal, 
                 ))}
                 <EmptyMealSlot
                   type={type}
-                  onLog={() => onLogMeal(type)}
+                  onLog={() => onLogMeal(type, data.date)}
                 />
               </div>
             )

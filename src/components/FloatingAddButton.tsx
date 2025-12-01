@@ -6,7 +6,8 @@ import { MealType } from '@/types'
 import { cn } from '@/lib/utils'
 
 interface FloatingAddButtonProps {
-  onSelectMeal: (type: MealType) => void
+  onSelectMeal: (type: MealType, date: string) => void
+  defaultDate: string
 }
 
 const options: { type: MealType; icon: React.ReactNode; label: string }[] = [
@@ -17,7 +18,7 @@ const options: { type: MealType; icon: React.ReactNode; label: string }[] = [
   { type: 'indulgence', icon: <Cake className="w-5 h-5" />, label: 'Indulgence' },
 ]
 
-export function FloatingAddButton({ onSelectMeal }: FloatingAddButtonProps) {
+export function FloatingAddButton({ onSelectMeal, defaultDate }: FloatingAddButtonProps) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -33,7 +34,7 @@ export function FloatingAddButton({ onSelectMeal }: FloatingAddButtonProps) {
               <button
                 key={opt.type}
                 onClick={() => {
-                  onSelectMeal(opt.type)
+                  onSelectMeal(opt.type, defaultDate)
                   setOpen(false)
                 }}
                 className={cn(

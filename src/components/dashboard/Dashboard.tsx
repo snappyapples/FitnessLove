@@ -14,6 +14,7 @@ export function Dashboard() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(null)
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   const fetchDays = useCallback(async () => {
@@ -35,9 +36,10 @@ export function Dashboard() {
     fetchDays()
   }, [fetchDays])
 
-  const handleLogMeal = (type: MealType) => {
+  const handleLogMeal = (type: MealType, date: string) => {
     setEditingMeal(null)
     setSelectedMealType(type)
+    setSelectedDate(date)
     setSheetOpen(true)
   }
 
@@ -84,14 +86,14 @@ export function Dashboard() {
         if (!res.ok) throw new Error('Failed to update meal')
       } else {
         // Create new meal
-        const today = format(new Date(), 'yyyy-MM-dd')
+        const mealDate = selectedDate || format(new Date(), 'yyyy-MM-dd')
 
         const res = await fetch('/api/meals', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: selectedMealType,
-            date: today,
+            date: mealDate,
             items,
             context,
           }),
@@ -113,6 +115,7 @@ export function Dashboard() {
     setSheetOpen(open)
     if (!open) {
       setEditingMeal(null)
+      setSelectedDate(null)
     }
   }
 
@@ -161,7 +164,7 @@ export function Dashboard() {
         )}
       </div>
 
-      <FloatingAddButton onSelectMeal={handleLogMeal} />
+      <FloatingAddButton onSelectMeal={handleLogMeal} defaultDate={format(new Date(), 'yyyy-MM-dd')} />
 
       <LogMealSheet
         open={sheetOpen}
