@@ -108,6 +108,13 @@ function MetricCard({
   )
 }
 
+// Get ring color based on percentage of goal (for "higher is better" metrics)
+function getProgressColor(percent: number): string {
+  if (percent >= 80) return '#4CAF50' // green
+  if (percent >= 50) return '#FFCA28' // yellow
+  return '#E53935' // red
+}
+
 export function DailyMetrics({ data }: DailyMetricsProps) {
   const settings = useSettings()
 
@@ -130,6 +137,10 @@ export function DailyMetrics({ data }: DailyMetricsProps) {
   const proteinQuality = getProteinQuality(proteinRatio)
   const fiberQuality = getFiberQuality(fiberRatio)
 
+  // Calculate percentages for ring colors
+  const proteinPercent = Math.round((data.totalProtein / proteinGoal) * 100)
+  const fiberPercent = Math.round((data.totalFiber / fiberGoal) * 100)
+
   return (
     <div className="space-y-4">
       {/* Main metrics with progress rings */}
@@ -147,7 +158,7 @@ export function DailyMetrics({ data }: DailyMetricsProps) {
           value={data.totalProtein}
           unit="g"
           goal={proteinGoal}
-          color="#2E7D32"
+          color={getProgressColor(proteinPercent)}
           efficiency={{ value: proteinEfficiency, quality: proteinQuality }}
         />
         <MetricCard
@@ -155,7 +166,7 @@ export function DailyMetrics({ data }: DailyMetricsProps) {
           value={data.totalFiber}
           unit="g"
           goal={fiberGoal}
-          color="#2E7D32"
+          color={getProgressColor(fiberPercent)}
           efficiency={{ value: fiberEfficiency, quality: fiberQuality }}
         />
       </div>
