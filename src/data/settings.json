@@ -1,0 +1,11 @@
+{
+  "age": 30,
+  "sex": "male",
+  "heightFeet": 5,
+  "heightInches": 10,
+  "weight": 180,
+  "activityLevel": 1.55,
+  "calorieGoal": 2400,
+  "proteinGoal": 150,
+  "fiberGoal": 30
+}
