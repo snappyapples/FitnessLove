@@ -1,6 +1,6 @@
 'use client'
 
-import { DayData, DAILY_GOALS, getProteinQuality, getFiberQuality, QualityLevel } from '@/types'
+import { DayData, DAILY_GOALS, QualityLevel } from '@/types'
 import { useSettings } from '@/components/settings/SettingsSheet'
 
 interface DailyMetricsProps {
@@ -134,8 +134,9 @@ export function DailyMetrics({ data }: DailyMetricsProps) {
   const proteinEfficiency = Math.round((proteinRatio / proteinGoalRatio) * 100)
   const fiberEfficiency = Math.round((fiberRatio / fiberGoalRatio) * 100)
 
-  const proteinQuality = getProteinQuality(proteinRatio)
-  const fiberQuality = getFiberQuality(fiberRatio)
+  // Quality based on efficiency: green >= 100%, yellow >= 67%, red < 67%
+  const proteinQuality: QualityLevel = proteinEfficiency >= 100 ? 'green' : proteinEfficiency >= 67 ? 'yellow' : 'red'
+  const fiberQuality: QualityLevel = fiberEfficiency >= 100 ? 'green' : fiberEfficiency >= 67 ? 'yellow' : 'red'
 
   // Calculate percentages for ring colors
   const proteinPercent = Math.round((data.totalProtein / proteinGoal) * 100)
