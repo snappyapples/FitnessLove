@@ -19,8 +19,8 @@ function dbRowToMeal(row: any): Meal {
 }
 
 // Helper to aggregate meals into day data
-function aggregateDays(meals: Meal[], numDays: number): DayData[] {
-  const today = new Date()
+function aggregateDays(meals: Meal[], numDays: number, todayStr?: string): DayData[] {
+  const today = todayStr ? new Date(todayStr + 'T12:00:00') : new Date()
   const days: DayData[] = []
 
   for (let i = 0; i < numDays; i++) {
@@ -55,10 +55,12 @@ export async function GET(request: NextRequest) {
     const supabase = await createSupabaseServerClient()
     const { searchParams } = new URL(request.url)
     const days = searchParams.get('days')
+    const todayParam = searchParams.get('today')
 
     if (days) {
       const numDays = parseInt(days, 10)
-      const startDate = format(subDays(new Date(), numDays - 1), 'yyyy-MM-dd')
+      const todayDate = todayParam ? new Date(todayParam + 'T12:00:00') : new Date()
+      const startDate = format(subDays(todayDate, numDays - 1), 'yyyy-MM-dd')
 
       const { data, error } = await supabase
         .from('meals')
@@ -71,7 +73,7 @@ export async function GET(request: NextRequest) {
       if (error) throw error
 
       const meals = (data || []).map(dbRowToMeal)
-      const dayData = aggregateDays(meals, numDays)
+      const dayData = aggregateDays(meals, numDays, todayParam || undefined)
 
       return NextResponse.json({ days: dayData })
     }

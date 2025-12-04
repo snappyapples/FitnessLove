@@ -20,7 +20,8 @@ export function Dashboard() {
   const fetchDays = useCallback(async () => {
     try {
       setError(null)
-      const res = await fetch('/api/meals?days=7')
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const res = await fetch(`/api/meals?days=7&today=${today}`)
       if (!res.ok) throw new Error('Failed to fetch meals')
       const data = await res.json()
       setDays(data.days || [])
