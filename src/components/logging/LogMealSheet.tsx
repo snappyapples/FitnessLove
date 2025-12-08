@@ -21,6 +21,22 @@ const mealLabels: Record<MealType, string> = {
   indulgence: 'Indulgence',
 }
 
+const hungerDescriptions: Record<number, string> = {
+  1: 'Starving - overly hungry, may lead to overeating',
+  2: 'Very hungry - strong hunger signals',
+  3: 'Moderately hungry - ideal time to eat',
+  4: 'Slightly hungry - could wait a bit longer',
+  5: 'Not hungry - eating for other reasons',
+}
+
+const stressDescriptions: Record<number, string> = {
+  1: 'Very calm - relaxed and at ease',
+  2: 'Slightly stressed - minor tension',
+  3: 'Moderately stressed - some pressure',
+  4: 'Quite stressed - significant tension',
+  5: 'Extremely stressed - overwhelmed',
+}
+
 // Editable food item component
 function EditableFoodItem({
   item,
@@ -144,8 +160,8 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
   const [parsing, setParsing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [context, setContext] = useState<MealContext>({
-    hungerLevel: 3,
-    stressLevel: 3,
+    hungerLevel: undefined,
+    stressLevel: undefined,
     ateWithOthers: false,
     notes: '',
   })
@@ -157,8 +173,8 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
         // Editing existing meal - populate form
         setItems(editingMeal.items)
         setContext(editingMeal.context || {
-          hungerLevel: 3,
-          stressLevel: 3,
+          hungerLevel: undefined,
+          stressLevel: undefined,
           ateWithOthers: false,
           notes: '',
         })
@@ -166,8 +182,8 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
         // New meal - reset form
         setItems([])
         setContext({
-          hungerLevel: 3,
-          stressLevel: 3,
+          hungerLevel: undefined,
+          stressLevel: undefined,
           ateWithOthers: false,
           notes: '',
         })
@@ -214,7 +230,7 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
       await onSave(items, context)
       setItems([])
       setInput('')
-      setContext({ hungerLevel: 3, stressLevel: 3, ateWithOthers: false, notes: '' })
+      setContext({ hungerLevel: undefined, stressLevel: undefined, ateWithOthers: false, notes: '' })
       onOpenChange(false)
     } catch (err) {
       console.error('Failed to save meal:', err)
@@ -284,15 +300,17 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
           )}
 
           {/* Context inputs */}
-          <div className="space-y-2">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Hunger Level</label>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Hunger Level <span className="text-destructive">*</span>
+              </label>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((level) => (
                   <button
                     key={level}
                     onClick={() => setContext({ ...context, hungerLevel: level })}
-                    className={`flex-1 py-1.5 text-sm rounded-md border transition-colors ${
+                    className={`flex-1 py-2 text-sm rounded-md border transition-colors ${
                       context.hungerLevel === level
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-secondary'
@@ -302,16 +320,21 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-muted-foreground min-h-[1rem]">
+                {context.hungerLevel ? hungerDescriptions[context.hungerLevel] : 'Select your hunger level before eating'}
+              </p>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Stress Level</label>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Stress Level <span className="text-destructive">*</span>
+              </label>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((level) => (
                   <button
                     key={level}
                     onClick={() => setContext({ ...context, stressLevel: level })}
-                    className={`flex-1 py-1.5 text-sm rounded-md border transition-colors ${
+                    className={`flex-1 py-2 text-sm rounded-md border transition-colors ${
                       context.stressLevel === level
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-secondary'
@@ -321,7 +344,23 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-muted-foreground min-h-[1rem]">
+                {context.stressLevel ? stressDescriptions[context.stressLevel] : 'Select your stress level at mealtime'}
+              </p>
             </div>
+
+            {/* Save button - moved up for accessibility */}
+            <Button
+              onClick={handleSave}
+              disabled={items.length === 0 || saving || context.hungerLevel === undefined || context.stressLevel === undefined}
+              className="w-full h-12 text-base font-medium"
+              size="lg"
+            >
+              {saving ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : null}
+              {isEditing ? 'Update' : 'Save'} {mealType ? mealLabels[mealType] : 'Meal'}
+            </Button>
 
             <div className="flex items-center gap-2">
               <button
@@ -342,20 +381,6 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
               />
             </div>
           </div>
-        </div>
-
-        {/* Save button */}
-        <div className="pt-2 border-t px-4 pb-3">
-          <Button
-            onClick={handleSave}
-            disabled={items.length === 0 || saving}
-            className="w-full"
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : null}
-            {isEditing ? 'Update' : 'Save'} {mealType ? mealLabels[mealType] : 'Meal'}
-          </Button>
         </div>
       </SheetContent>
     </Sheet>
