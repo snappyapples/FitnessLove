@@ -22,19 +22,19 @@ const mealLabels: Record<MealType, string> = {
 }
 
 const hungerDescriptions: Record<number, string> = {
-  1: 'Starving - overly hungry, may lead to overeating',
-  2: 'Very hungry - strong hunger signals',
+  1: 'Not hungry - eating for other reasons',
+  2: 'Slightly hungry - could wait a bit longer',
   3: 'Moderately hungry - ideal time to eat',
-  4: 'Slightly hungry - could wait a bit longer',
-  5: 'Not hungry - eating for other reasons',
+  4: 'Very hungry - strong hunger signals',
+  5: 'Starving - overly hungry, may lead to overeating',
 }
 
-const stressDescriptions: Record<number, string> = {
-  1: 'Very calm - relaxed and at ease',
-  2: 'Slightly stressed - minor tension',
-  3: 'Moderately stressed - some pressure',
-  4: 'Quite stressed - significant tension',
-  5: 'Extremely stressed - overwhelmed',
+const calmDescriptions: Record<number, string> = {
+  1: 'Not calm - overwhelmed or very stressed',
+  2: 'Slightly calm - significant tension',
+  3: 'Moderately calm - some pressure',
+  4: 'Quite calm - minor tension',
+  5: 'Very calm - relaxed and at ease',
 }
 
 // Editable food item component
@@ -161,7 +161,7 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
   const [saving, setSaving] = useState(false)
   const [context, setContext] = useState<MealContext>({
     hungerLevel: undefined,
-    stressLevel: undefined,
+    calmLevel: undefined,
     ateWithOthers: false,
     notes: '',
   })
@@ -174,7 +174,7 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
         setItems(editingMeal.items)
         setContext(editingMeal.context || {
           hungerLevel: undefined,
-          stressLevel: undefined,
+          calmLevel: undefined,
           ateWithOthers: false,
           notes: '',
         })
