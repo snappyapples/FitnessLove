@@ -29,7 +29,7 @@ const hungerDescriptions: Record<number, string> = {
   5: 'Starving - overly hungry, may lead to overeating',
 }
 
-const calmDescriptions: Record<number, string> = {
+const stressDescriptions: Record<number, string> = {
   1: 'Not calm - overwhelmed or very stressed',
   2: 'Slightly calm - significant tension',
   3: 'Moderately calm - some pressure',
@@ -161,7 +161,7 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
   const [saving, setSaving] = useState(false)
   const [context, setContext] = useState<MealContext>({
     hungerLevel: undefined,
-    calmLevel: undefined,
+    stressLevel: undefined,
     ateWithOthers: false,
     notes: '',
   })
@@ -174,7 +174,7 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
         setItems(editingMeal.items)
         setContext(editingMeal.context || {
           hungerLevel: undefined,
-          calmLevel: undefined,
+          stressLevel: undefined,
           ateWithOthers: false,
           notes: '',
         })
