@@ -327,7 +327,7 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium">
-                Stress Level <span className="text-destructive">*</span>
+                Calm Level <span className="text-destructive">*</span>
               </label>
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((level) => (
@@ -345,7 +345,7 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
                 ))}
               </div>
               <p className="text-xs text-muted-foreground min-h-[1rem]">
-                {context.stressLevel ? stressDescriptions[context.stressLevel] : 'Select your stress level at mealtime'}
+                {context.stressLevel ? stressDescriptions[context.stressLevel] : 'Select your calm level at mealtime'}
               </p>
             </div>
 

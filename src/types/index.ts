@@ -111,3 +111,30 @@ export function getFiberQuality(fiberPerCalorie: number): QualityLevel {
   if (fiberPerCalorie >= THRESHOLDS.fiber.yellow) return 'yellow'
   return 'red'
 }
+
+// Mindfulness Report Types
+export interface MindfulnessMetrics {
+  totalMeals: number
+  calmMeals: number
+  hungryMeals: number
+  calmPercent: number
+  hungryPercent: number
+}
+
+export interface MealTypeMetrics {
+  breakfast: MindfulnessMetrics
+  lunch: MindfulnessMetrics
+  dinner: MindfulnessMetrics
+  snack: MindfulnessMetrics
+  indulgence: MindfulnessMetrics
+}
+
+export interface MindfulnessReport {
+  thisWeek: MindfulnessMetrics
+  lastWeek: MindfulnessMetrics | null
+  byMealType: MealTypeMetrics
+  trends: {
+    calmDelta: number | null      // percentage point change (null if no last week data)
+    hungryDelta: number | null
+  }
+}
