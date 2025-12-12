@@ -45,6 +45,13 @@ The app tracks three metrics (defined in `src/types/index.ts`):
 
 Overall daily score = equal weight (33.3% each) of the three metrics. Color coding uses efficiency index: `(nutrientPercent / caloriePercent) * 100` — green ≥100%, yellow ≥67%, red <67%.
 
+### Mindful Eating Report
+
+The app tracks emotional eating patterns via `src/lib/mindfulness.ts`:
+- **Calm Level** (stored as `stressLevel` in DB): 1-5 scale where 5 = very calm. Threshold for "eating when calm" is 4-5.
+- **Hunger Level**: 1-5 scale where 5 = starving. Sweet spot for "eating when hungry" is 3-4 (not starving, not bored).
+- Report shows weekly percentages, day-by-day trends, and breakdown by meal type.
+
 ### File Organization
 
 ```
@@ -58,14 +65,15 @@ src/
 │   └── login/page.tsx          # Login page
 ├── components/
 │   ├── auth/                   # AuthProvider, AuthGuard
-│   ├── dashboard/              # DayCard, MealRow, Dashboard
+│   ├── dashboard/              # DayCard, MealRow, Dashboard, MindfulnessReport
 │   ├── logging/                # LogMealSheet
 │   ├── settings/               # SettingsSheet
 │   └── ui/                     # shadcn components
 ├── lib/
 │   ├── supabase.ts             # Client-side Supabase (uses @supabase/ssr browser client)
 │   ├── supabase-server.ts      # Server-side Supabase (uses cookies)
-│   └── openai.ts               # OpenAI client + prompt
+│   ├── openai.ts               # OpenAI client + prompt
+│   └── mindfulness.ts          # Mindful eating calculations and thresholds
 ├── middleware.ts               # Auth session sync on every request
 └── types/index.ts              # All TypeScript types + scoring logic
 ```
