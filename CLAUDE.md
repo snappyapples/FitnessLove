@@ -26,15 +26,15 @@ FitnessLove is a Next.js 16 nutrition tracking app with AI-powered meal logging.
 ### Key Data Flow
 
 1. **Meal Logging**: User describes meal → `POST /api/parse-meal` → OpenAI parses text → returns structured `FoodItem[]` → User confirms → `POST /api/meals` → Supabase
-2. **Authentication**: Magic Link via Supabase Auth → `/auth/callback` (client-side page) handles token from URL hash → AuthProvider manages session state
+2. **Authentication**: Email + password via Supabase Auth → AuthProvider manages session state → redirects to `/` on success
 3. **Data Fetching**: Dashboard calls `GET /api/meals?days=7` → Server gets user from session → queries Supabase → aggregates into `DayData[]`
 
 ### Auth Architecture
 
 - **Middleware** (`src/middleware.ts`): Runs on every request, syncs auth cookies between client and server
-- **AuthProvider** (`src/components/auth/AuthProvider.tsx`): Client-side context for user state, uses `@supabase/ssr` browser client
+- **AuthProvider** (`src/components/auth/AuthProvider.tsx`): Client-side context for user state, provides `signIn(email, password)` method using `signInWithPassword()`
 - **AuthGuard**: Wraps protected pages, redirects to `/login` if not authenticated
-- **Callback**: `/auth/callback` is a **client-side page** (not API route) because Supabase magic links put tokens in URL hash, which servers can't see
+- **User Management**: Users are created manually in Supabase dashboard (Authentication > Users > Add User). No self-registration.
 
 ### Scoring System
 
@@ -61,8 +61,7 @@ src/
 │   │   ├── meals/route.ts      # CRUD for meals (Supabase)
 │   │   ├── settings/route.ts   # User settings (Supabase)
 │   │   └── parse-meal/route.ts # OpenAI meal parsing
-│   ├── auth/callback/page.tsx  # Magic Link callback (client-side)
-│   └── login/page.tsx          # Login page
+│   └── login/page.tsx          # Email/password login page
 ├── components/
 │   ├── auth/                   # AuthProvider, AuthGuard
 │   ├── dashboard/              # DayCard, MealRow, Dashboard, MindfulnessReport
