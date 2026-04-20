@@ -1,10 +1,12 @@
 # Longevity Nutrition Score
 
-An adapted AHEI-2010 style 0-100 score tracking diet quality over time. The **7-day rolling average** is the primary metric.
+An adapted AHEI-2010 style 0-100 score tracking diet quality over time. The score is a **pure 7-day rolling window** — every item you log enters the current window, and the score updates continuously. No daily reset, no averaging of daily scores.
 
-## How to score 100 in a day (at ~2000 kcal)
+## What a 100 looks like (daily average at ~2,000 kcal)
 
-| Pts | Component | Target |
+Targets are expressed as a *per-day average* across the 7-day window — so 5 veg/day means 35 veg across the last 7 days. A big-salad day can offset a light day.
+
+| Pts | Component | Target (per day avg) |
 |---|---|---|
 | 15 | Vegetables | 5 servings (½ cup cooked or 1 cup raw each) |
 | 10 | Fruit | 2 servings (1 piece or ½ cup) |
@@ -12,12 +14,12 @@ An adapted AHEI-2010 style 0-100 score tracking diet quality over time. The **7-
 | 10 | Whole grains | 3 servings (½ cup oats/quinoa/brown rice or 1 slice whole-wheat bread) |
 | 5 | Nuts / Seeds | 1 serving (1 oz) |
 | 10 | Healthy fat | 2 servings (EVOO, avocado, olives, nuts/seeds, fatty fish) |
-| 10 | Fish (weekly) | 2 servings of fatty fish over the past 7 days (rolling) |
+| 10 | Fish | 2 servings of fatty fish over the 7-day window |
 | 10 | No sugary drinks | Zero sweetened drinks |
 | 10 | No red/processed meat | Zero beef, pork, lamb, bacon, sausage, deli meat |
-| 10 | UPF under control | Ultra-processed < 10% of daily calories |
+| 10 | UPF under control | Ultra-processed < 10% of window calories |
 
-Positive-food targets are density-normalized per 1000 kcal, so if you eat fewer calories, you need proportionally less to hit the target.
+Positive-food targets are density-normalized per 1,000 kcal, so if you eat fewer calories, you need proportionally less to hit the target. Harm thresholds (sugary drinks, red meat) scale with the window — so `≥2 sugary drinks/day` becomes `≥14 over 7 days` for a zero score.
 
 ## Architecture
 
@@ -127,15 +129,21 @@ Each item also has a `processingLevel`: `'whole' | 'minimal' | 'processed' | 'ul
 
 Takes all meals from the last 14 days and returns a `LongevityReport`:
 
-- `todayScore` — today's `LongevityDailyScore` (0 if no meals)
-- `rollingScore` / `thisWeekAvg` — avg across days with data in the last 7 days
-- `lastWeekAvg` / `weeklyDelta` — same for the prior 7 days
-- `dailyScores[]` — per-day breakdown for the last 7 days, most recent first
-- `subscoresRolling` — the four subscores averaged across the rolling window
+- `rollingScore` — **primary metric.** Pure 7-day window score (0-100), computed in one shot from all items in the window — not an average of daily scores.
+- `rollingHasData` — true if any items in the 7-day window
+- `subscoresRolling` — the four subscores of the current window
+- `componentsRolling` — full 10-component breakdown of the current window (used by `getNextMealTip`)
+- `lastWeekAvg` / `weeklyDelta` — the prior 7-day window score (days 8-14 back) and the current-vs-prior delta
+- `dailyScores[]` — per-day breakdown for the last 7 days (for day cards)
+- `todayScore` — alias for `dailyScores[0]`; the single-day score for today, useful in the per-day view but **not** the headline metric
+
+### `scoreWindow(items, windowDays=7)`
+
+Scores an arbitrary rolling window of items. Positive components are density-normalized per 1,000 kcal (scale-free); harm thresholds scale with `windowDays`; fish target is `2 × (windowDays / 7)`.
 
 ### `scoreDay(date, agg, fishServingsLast7Days)`
 
-Scores a single day given its aggregated item totals and the cumulative fish servings in the trailing 7-day window (including the day itself).
+Scores a single day (for day-card display only). Internally delegates to the same core computation as `scoreWindow` with `windowDays=1` and an externally-supplied 7-day fish count.
 
 ### `getNextMealTip(report: LongevityReport)`
 
@@ -145,9 +153,11 @@ The UI hides the tip when `gapPoints < 0.5` (the user is effectively optimized).
 
 ## Implementation notes
 
-- **Density normalization**: positive components are per-1000-kcal so the score doesn't penalize smaller eaters or reward volume.
-- **Fish is rolling-7-day**: for any given day, fish score uses servings from the prior 7 days (including that day). Smooths out the "did you eat fish today?" noise.
-- **Empty days are excluded from rolling avg**: if you don't log on a day, it doesn't drag your 7-day average down.
+- **Pure rolling window**: the headline `rollingScore` is computed in one shot from all items in the last 7 days. There is no daily reset and no averaging of daily scores — logging any single item nudges the score by exactly its contribution to the weekly totals.
+- **Density normalization**: positive components are per-1,000 kcal so the score doesn't penalize smaller eaters or reward volume. Works identically on a 1-day or 7-day aggregate.
+- **Harm thresholds scale with the window**: `≥2 sugary drinks/day` becomes `≥14 over 7 days`. UPF is a ratio (% of kcal) so it's already scale-free.
+- **Fish is a weekly target**: `2 servings per 7 days`. Same over the rolling window as it was per-day (since the target always referred to a week).
+- **Per-day cards still use `scoreDay`**: the day-by-day breakdown is useful for pattern-spotting but isn't the headline metric. Today's per-day score will look low early in the day (partial data) — that's why we moved the headline to the window score.
 - **Leafy/crucifer items double-count** as `vegetable` (they belong to both categories). The prompt instructs the model to include both.
 - **Alcohol is not scored** (per user preference).
 - **Poultry is deliberately excluded from red_meat** — the prompt is explicit that chicken/turkey/duck belong to no positive category. They score as `Neutral`.

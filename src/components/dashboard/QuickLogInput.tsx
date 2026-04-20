@@ -6,9 +6,35 @@ import { format } from 'date-fns'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import type { FoodItem, Meal, MealType } from '@/types'
+import type { FoodItem, LongevityReport, Meal, MealType } from '@/types'
 import { buildLongevityReport } from '@/lib/longevity-score'
 import { CategoryChips } from './CategoryChips'
+
+const COMPONENT_LABELS: Record<keyof LongevityReport['componentsRolling'], string> = {
+  vegetables: 'Vegetables',
+  fruit: 'Fruit',
+  legumes: 'Legumes',
+  wholeGrains: 'Whole grains',
+  nutsSeeds: 'Nuts/Seeds',
+  healthyFat: 'Healthy fat',
+  fish: 'Fish',
+  sugaryDrinks: 'Sugary drinks',
+  redProcessedMeat: 'Red/processed meat',
+  ultraProcessed: 'Ultra-processed',
+}
+
+function componentDeltas(base: LongevityReport, next: LongevityReport): Array<{ key: string; label: string; delta: number }> {
+  const out: Array<{ key: string; label: string; delta: number }> = []
+  const keys = Object.keys(COMPONENT_LABELS) as Array<keyof LongevityReport['componentsRolling']>
+  for (const k of keys) {
+    const d = next.componentsRolling[k].points - base.componentsRolling[k].points
+    if (Math.abs(d) >= 0.1) {
+      out.push({ key: k, label: COMPONENT_LABELS[k], delta: Math.round(d * 10) / 10 })
+    }
+  }
+  out.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+  return out
+}
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack']
 const MEAL_LABELS: Record<MealType, string> = {
@@ -74,17 +100,13 @@ export function QuickLogInput({ meals, onSave }: QuickLogInputProps) {
       createdAt: new Date().toISOString(),
     }
     const newReport = buildLongevityReport([...meals, hypothetical], new Date())
-    const todayBefore = baseReport.todayScore.hasData ? baseReport.todayScore.totalScore : 0
-    const todayAfter = newReport.todayScore.totalScore
-    const rollingBefore = baseReport.rollingScore
-    const rollingAfter = newReport.rollingScore
+    const before = baseReport.rollingHasData ? baseReport.rollingScore : 0
+    const after = newReport.rollingScore
     return {
-      todayBefore,
-      todayAfter,
-      todayDelta: Math.round((todayAfter - todayBefore) * 10) / 10,
-      rollingBefore,
-      rollingAfter,
-      rollingDelta: Math.round((rollingAfter - rollingBefore) * 10) / 10,
+      before,
+      after,
+      delta: Math.round((after - before) * 10) / 10,
+      componentChanges: componentDeltas(baseReport, newReport),
     }
   }, [stage, items, meals, today, mealType])
 
@@ -177,19 +199,33 @@ export function QuickLogInput({ meals, onSave }: QuickLogInputProps) {
         </div>
 
         {preview && (
-          <div className="grid grid-cols-2 gap-3 mb-3 p-3 rounded-md bg-primary/5 border border-primary/10">
+          <div className="mb-3 p-3 rounded-md bg-primary/5 border border-primary/10 space-y-2">
             <ScoreDeltaBlock
-              label="Today"
-              before={preview.todayBefore}
-              after={preview.todayAfter}
-              delta={preview.todayDelta}
+              label="Longevity score"
+              before={preview.before}
+              after={preview.after}
+              delta={preview.delta}
             />
-            <ScoreDeltaBlock
-              label="7-day avg"
-              before={preview.rollingBefore}
-              after={preview.rollingAfter}
-              delta={preview.rollingDelta}
-            />
+            {preview.componentChanges.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {preview.componentChanges.map((c) => {
+                  const isUp = c.delta > 0
+                  const sign = isUp ? '+' : ''
+                  const color = isUp
+                    ? 'bg-quality-green/15 text-quality-green'
+                    : 'bg-quality-red/15 text-quality-red'
+                  return (
+                    <span
+                      key={c.key}
+                      className={`px-2 py-0.5 rounded text-xs font-medium tabular-nums ${color}`}
+                    >
+                      {sign}
+                      {c.delta.toFixed(1)} {c.label}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 

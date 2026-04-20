@@ -198,12 +198,13 @@ export interface LongevityDailyScore {
 }
 
 export interface LongevityReport {
-  todayScore: LongevityDailyScore
-  rollingScore: number           // 7-day rolling avg (0-100)
-  rollingHasData: boolean        // true if at least 1 day has data in window
-  dailyScores: LongevityDailyScore[]  // last 7 days, most recent first
-  subscoresRolling: LongevitySubscores // rolling-window avg subscores
-  thisWeekAvg: number            // avg across last 7 days with data
-  lastWeekAvg: number | null     // avg across prior 7 days with data
-  weeklyDelta: number | null     // thisWeekAvg - lastWeekAvg
+  todayScore: LongevityDailyScore     // today as a single-day score (for day card display)
+  rollingScore: number                // 7-day rolling window score (0-100) — primary metric
+  rollingHasData: boolean             // true if any items in the rolling window
+  dailyScores: LongevityDailyScore[]  // last 7 days, most recent first (for day cards)
+  subscoresRolling: LongevitySubscores        // subscores of the current 7-day window
+  componentsRolling: LongevityComponentBreakdown  // full component breakdown of current window
+  thisWeekAvg: number                 // alias for rollingScore (retained for backcompat)
+  lastWeekAvg: number | null          // prior 7-day window score
+  weeklyDelta: number | null          // rollingScore - lastWeekAvg
 }

@@ -29,7 +29,7 @@ function DeltaBadge({ delta }: { delta: number | null }) {
       <Icon className="w-4 h-4" />
       <span>
         {sign}
-        {delta.toFixed(1)} vs last week
+        {delta.toFixed(1)} vs previous 7 days
       </span>
     </div>
   )
@@ -195,13 +195,10 @@ export function LongevityDashboard() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
-                    7-Day Longevity Score
+                    Longevity Score
                   </div>
-                  <div className="text-base text-muted-foreground mt-1">
-                    Today:{' '}
-                    <span className="text-lg font-bold text-foreground tabular-nums">
-                      {report.todayScore.hasData ? Math.round(report.todayScore.totalScore) : '—'}
-                    </span>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Rolling 7-day window
                   </div>
                 </div>
                 <LongevityHelpSheet />

@@ -65,14 +65,20 @@ export function LongevityHelpSheet() {
               most strongly associated with healthy aging in long-term nutrition studies.
             </p>
             <p>
-              The <span className="font-medium">7-day rolling average</span> is the number that matters most —
-              diet quality is noisy day to day, and the research is about patterns over time, not Tuesday dinner.
+              It&apos;s a <span className="font-medium">rolling 7-day score</span> — every meal you log is
+              added to the previous 7 days&apos; window, and the score updates continuously. There&apos;s no
+              daily reset, no &ldquo;today&rdquo; anchor. Diet quality is about patterns over time, and the
+              score reflects that directly.
             </p>
           </section>
 
           {/* How to score 100 */}
           <section className="space-y-2">
-            <h3 className="font-semibold text-base">How to score 100 in a day (at ~2000 kcal)</h3>
+            <h3 className="font-semibold text-base">What a 100 looks like (per day at ~2,000 kcal)</h3>
+            <p className="text-sm text-muted-foreground">
+              The targets below are the <em>daily average</em> you&apos;d need to hit over 7 days for a perfect
+              score. E.g., 5 servings of veg/day on average = 35 servings/week.
+            </p>
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full">
                 <thead className="bg-muted/50">
@@ -108,8 +114,9 @@ export function LongevityHelpSheet() {
                   Plants <span className="text-muted-foreground font-normal">(0–50)</span>
                 </dt>
                 <dd className="text-sm text-muted-foreground">
-                  Vegetables + fruit + legumes + whole grains + nuts/seeds. A perfect 50 means you hit all five
-                  targets in the same day. This is half the entire daily score — the strongest longevity lever.
+                  Vegetables + fruit + legumes + whole grains + nuts/seeds. Half the whole score — the strongest
+                  longevity lever. Evaluated across the rolling 7-day window, so one big salad day can offset a
+                  light one.
                 </dd>
               </div>
               <div>
@@ -146,9 +153,9 @@ export function LongevityHelpSheet() {
           <section className="space-y-2">
             <h3 className="font-semibold text-base">&ldquo;Next best bite&rdquo; tip</h3>
             <p className="text-sm text-muted-foreground">
-              The tip under your score card points at the scoring component with the biggest gap between your
-              7-day rolling average and the max. Acting on it gives you the most points for the least effort —
-              usually a plants gap early on, then fish or fat quality as you dial things in.
+              The tip under your score card points at the scoring component with the biggest gap between its
+              current value (over the last 7 days) and its max. Acting on it gives you the most points for the
+              least effort — usually a plants gap early on, then fish or fat quality as you dial things in.
             </p>
           </section>
 

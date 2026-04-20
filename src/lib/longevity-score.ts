@@ -20,14 +20,14 @@ const TARGETS_PER_1000_KCAL = {
   healthy_fat: 1.0,    // 2 servings/day
 }
 
-// Harm thresholds (absolute per day)
-const SUGARY_DRINKS_ZERO_SCORE_AT = 2    // ≥2 servings/day → 0 points
-const RED_MEAT_ZERO_SCORE_AT = 1.5       // combined (processed counts 2x) → 0 points
-const UPF_FULL_SCORE_AT_PCT = 10         // ≤10% of kcal → full points
-const UPF_ZERO_SCORE_AT_PCT = 50         // ≥50% of kcal → 0 points
+// Harm thresholds (absolute per day — scaled by windowDays for rolling windows)
+const SUGARY_DRINKS_ZERO_SCORE_AT_PER_DAY = 2
+const RED_MEAT_ZERO_SCORE_AT_PER_DAY = 1.5
+const UPF_FULL_SCORE_AT_PCT = 10
+const UPF_ZERO_SCORE_AT_PCT = 50
 
-// Fish (weekly)
-const FISH_TARGET_PER_WEEK = 2           // servings/week for full points
+// Fish target (rolling, always a weekly quantity regardless of computation window)
+const FISH_TARGET_PER_WEEK = 2
 
 // Component max points
 const POINTS = {
@@ -54,10 +54,6 @@ function mkComponent(points: number, max: number, value: number): LongevityCompo
   return { points: Math.round(points * 10) / 10, max, value: Math.round(value * 100) / 100 }
 }
 
-/**
- * Get servings for a specific category from a food item.
- * Falls back to 0 if item lacks categorization (backwards-compat with old meals).
- */
 function itemServings(item: FoodItem, cat: FoodCategory): number {
   return item.servings?.[cat] ?? 0
 }
@@ -66,9 +62,6 @@ function itemHasCategory(item: FoodItem, cat: FoodCategory): boolean {
   return !!item.categories?.includes(cat)
 }
 
-/**
- * Aggregate all servings by category and calorie totals across a list of items.
- */
 export interface DayAggregate {
   totalKcal: number
   servingsByCat: Record<FoodCategory, number>
@@ -111,18 +104,24 @@ export function aggregateItems(items: FoodItem[]): DayAggregate {
 }
 
 /**
- * Score a single day given its aggregate and the 7-day-rolling fish servings
- * leading up to and including that day.
+ * Core scoring computation. Given an aggregate, a fish-servings total for the
+ * rolling window, and the window size in days, produces the full score.
+ *
+ * - Positive components are density-normalized per 1000 kcal (scale-free).
+ * - Fish target is always FISH_TARGET_PER_WEEK over 7 days; for longer/shorter
+ *   windows it scales linearly.
+ * - Harm thresholds (sugary drinks, red meat) scale with windowDays.
+ * - UPF is a ratio of window kcal — already scale-free.
  */
-export function scoreDay(
+function computeScore(
   date: string,
   agg: DayAggregate,
-  fishServingsLast7Days: number,
+  fishServings: number,
+  windowDays: number,
 ): LongevityDailyScore {
   const hasData = agg.totalKcal > 0
   const kcal1000 = agg.totalKcal / 1000
 
-  // --- Positive components (density-normalized per 1000 kcal) ---
   const density = (cat: FoodCategory) => (kcal1000 > 0 ? agg.servingsByCat[cat] / kcal1000 : 0)
 
   const vegDensity = density('vegetable')
@@ -167,26 +166,29 @@ export function scoreDay(
     hfDensity,
   )
 
-  // --- Fish (rolling 7-day) ---
-  const fishPct = clamp01(fishServingsLast7Days / FISH_TARGET_PER_WEEK)
-  const fish = mkComponent(fishPct * POINTS.fish, POINTS.fish, fishServingsLast7Days)
+  // Fish target scales with window (2/week = 2/7 per day)
+  const fishTarget = FISH_TARGET_PER_WEEK * (windowDays / 7)
+  const fishPct = fishTarget > 0 ? clamp01(fishServings / fishTarget) : 0
+  const fish = mkComponent(fishPct * POINTS.fish, POINTS.fish, fishServings)
 
-  // --- Harm (absolute per day, reverse-scored) ---
+  // Harm thresholds scale with window
   const sdServings = agg.servingsByCat.sugary_drink
+  const sdZeroAt = SUGARY_DRINKS_ZERO_SCORE_AT_PER_DAY * windowDays
   const sugaryDrinks = mkComponent(
-    clamp01(1 - sdServings / SUGARY_DRINKS_ZERO_SCORE_AT) * POINTS.sugaryDrinks,
+    clamp01(1 - sdServings / sdZeroAt) * POINTS.sugaryDrinks,
     POINTS.sugaryDrinks,
     sdServings,
   )
 
-  const redMeatCombined =
-    agg.servingsByCat.red_meat + 2 * agg.servingsByCat.processed_meat
+  const redMeatCombined = agg.servingsByCat.red_meat + 2 * agg.servingsByCat.processed_meat
+  const rmZeroAt = RED_MEAT_ZERO_SCORE_AT_PER_DAY * windowDays
   const redProcessedMeat = mkComponent(
-    clamp01(1 - redMeatCombined / RED_MEAT_ZERO_SCORE_AT) * POINTS.redProcessedMeat,
+    clamp01(1 - redMeatCombined / rmZeroAt) * POINTS.redProcessedMeat,
     POINTS.redProcessedMeat,
     redMeatCombined,
   )
 
+  // UPF is a ratio — scale-free
   const upfPct = agg.totalKcal > 0 ? (agg.upfKcal / agg.totalKcal) * 100 : 0
   const upfScoreFrac = clamp01(
     (UPF_ZERO_SCORE_AT_PCT - upfPct) / (UPF_ZERO_SCORE_AT_PCT - UPF_FULL_SCORE_AT_PCT),
@@ -246,26 +248,69 @@ export function scoreDay(
 }
 
 /**
- * Given all meals in a window and a "today" date, produce a full LongevityReport
- * covering today + last 6 days (7-day rolling) with this-week vs last-week deltas.
- * Caller should pass meals covering at least the last 14 days for lastWeekAvg to populate.
+ * Score a single day given its aggregate and the 7-day-rolling fish servings
+ * leading up to and including that day. Used for per-day breakdowns in the UI.
+ */
+export function scoreDay(
+  date: string,
+  agg: DayAggregate,
+  fishServingsLast7Days: number,
+): LongevityDailyScore {
+  return computeScore(date, agg, fishServingsLast7Days, 1)
+}
+
+/**
+ * Score an arbitrary rolling window of items. All positive/harm components are
+ * computed against the whole-window totals; density-normalization and ratios
+ * make this continuous — one more apple nudges the score by the right fraction
+ * regardless of which "day" it lands on.
+ */
+export function scoreWindow(items: FoodItem[], windowDays: number = 7): LongevityDailyScore {
+  const agg = aggregateItems(items)
+  const fishServings = agg.servingsByCat.fish_omega3
+  return computeScore('', agg, fishServings, windowDays)
+}
+
+/**
+ * Given all meals in a window and a "today" date, produce a full LongevityReport.
+ * The primary `rollingScore` is a pure 7-day window score (continuously updating),
+ * not an average of daily scores. Day-level scores are still produced for the
+ * per-day breakdown UI.
+ *
+ * Caller should pass meals covering at least the last 14 days so that
+ * `weeklyDelta` (this 7-day window vs. the prior 7-day window) can be computed.
  */
 export function buildLongevityReport(meals: Meal[], today: Date = new Date()): LongevityReport {
-  // Build an index of meals by date
   const mealsByDate: Record<string, Meal[]> = {}
   for (const m of meals) {
     if (!mealsByDate[m.date]) mealsByDate[m.date] = []
     mealsByDate[m.date].push(m)
   }
 
-  // Score a single date, including its rolling-7 fish window
+  const itemsInRange = (startOffset: number, endOffset: number): FoodItem[] => {
+    const out: FoodItem[] = []
+    for (let i = startOffset; i < endOffset; i++) {
+      const dateStr = format(subDays(today, i), 'yyyy-MM-dd')
+      const dayMeals = mealsByDate[dateStr] || []
+      for (const m of dayMeals) out.push(...(m.items || []))
+    }
+    return out
+  }
+
+  const currentWindowItems = itemsInRange(0, 7)
+  const priorWindowItems = itemsInRange(7, 14)
+
+  const currentWindow = scoreWindow(currentWindowItems, 7)
+  const priorWindow = scoreWindow(priorWindowItems, 7)
+
+  // Per-day scores for the day cards. Fish for a given day still uses the
+  // trailing-7-day count (unchanged behavior).
   const scoreForDate = (d: Date): LongevityDailyScore => {
     const dateStr = format(d, 'yyyy-MM-dd')
     const dayMeals = mealsByDate[dateStr] || []
     const items: FoodItem[] = dayMeals.flatMap((m) => m.items || [])
     const agg = aggregateItems(items)
 
-    // Sum fish servings over rolling 7-day window ending on this date
     let fish7 = 0
     for (let i = 0; i < 7; i++) {
       const windowDate = format(subDays(d, i), 'yyyy-MM-dd')
@@ -280,47 +325,35 @@ export function buildLongevityReport(meals: Meal[], today: Date = new Date()): L
     return scoreDay(dateStr, agg, fish7)
   }
 
-  // Compute daily scores for last 14 days (today back 13)
-  const last14: LongevityDailyScore[] = []
-  for (let i = 0; i < 14; i++) {
-    last14.push(scoreForDate(subDays(today, i)))
+  const dailyScores: LongevityDailyScore[] = []
+  for (let i = 0; i < 7; i++) {
+    dailyScores.push(scoreForDate(subDays(today, i)))
   }
 
-  const thisWeek = last14.slice(0, 7)  // most recent 7 days, index 0 = today
-  const lastWeek = last14.slice(7, 14) // prior 7 days
-
-  const avgOf = (days: LongevityDailyScore[]): number | null => {
-    const withData = days.filter((d) => d.hasData)
-    if (withData.length === 0) return null
-    return (
-      Math.round((withData.reduce((s, d) => s + d.totalScore, 0) / withData.length) * 10) / 10
-    )
-  }
-
-  const thisWeekAvg = avgOf(thisWeek) ?? 0
-  const lastWeekAvg = avgOf(lastWeek)
-  const rollingHasData = thisWeek.some((d) => d.hasData)
-  const weeklyDelta = lastWeekAvg !== null ? Math.round((thisWeekAvg - lastWeekAvg) * 10) / 10 : null
-
-  // Rolling-window subscores: avg subscore points across days with data
-  const subscoresRolling = avgSubscores(thisWeek)
+  const rollingHasData = currentWindow.hasData
+  const priorHasData = priorWindow.hasData
+  const rollingScore = currentWindow.totalScore
+  const priorRollingScore = priorWindow.totalScore
+  const weeklyDelta = priorHasData
+    ? Math.round((rollingScore - priorRollingScore) * 10) / 10
+    : null
 
   return {
-    todayScore: thisWeek[0],
-    rollingScore: thisWeekAvg,
+    todayScore: dailyScores[0],
+    rollingScore,
     rollingHasData,
-    dailyScores: thisWeek,
-    subscoresRolling,
-    thisWeekAvg,
-    lastWeekAvg,
+    dailyScores,
+    subscoresRolling: currentWindow.subscores,
+    componentsRolling: currentWindow.components,
+    thisWeekAvg: rollingScore,
+    lastWeekAvg: priorHasData ? priorRollingScore : null,
     weeklyDelta,
   }
 }
 
 /**
  * Returns the single highest-impact food recommendation to improve the
- * 7-day rolling score. Looks at which scoring component has the largest gap
- * between current average and max, then suggests a specific food.
+ * rolling score. Reads component gaps directly from the current window.
  */
 export interface NextMealTip {
   component:
@@ -335,16 +368,14 @@ export interface NextMealTip {
     | 'redProcessedMeat'
     | 'ultraProcessed'
     | 'none'
-  label: string          // short component label, e.g. "Vegetables"
-  gapPoints: number      // how many points you could gain in the rolling avg
-  suggestion: string     // concrete food suggestion
-  kind: 'add' | 'avoid'  // add this food vs. cut this
+  label: string
+  gapPoints: number
+  suggestion: string
+  kind: 'add' | 'avoid'
 }
 
 export function getNextMealTip(report: LongevityReport): NextMealTip {
-  // Compute rolling-avg per component by averaging across days with data.
-  const withData = report.dailyScores.filter((d) => d.hasData)
-  if (withData.length === 0) {
+  if (!report.rollingHasData) {
     return {
       component: 'none',
       label: '',
@@ -354,100 +385,97 @@ export function getNextMealTip(report: LongevityReport): NextMealTip {
     }
   }
 
-  const avg = (picker: (d: LongevityDailyScore) => number): number =>
-    withData.reduce((s, d) => s + picker(d), 0) / withData.length
+  const c = report.componentsRolling
 
-  const components = [
+  const candidates = [
     {
       id: 'vegetables' as const,
       label: 'Vegetables',
-      max: report.dailyScores[0].components.vegetables.max,
-      current: avg((d) => d.components.vegetables.points),
+      max: c.vegetables.max,
+      current: c.vegetables.points,
       kind: 'add' as const,
       suggestion: 'Add a 1-cup salad or ½ cup roasted broccoli/cauliflower to your next meal.',
     },
     {
       id: 'fruit' as const,
       label: 'Fruit',
-      max: report.dailyScores[0].components.fruit.max,
-      current: avg((d) => d.components.fruit.points),
+      max: c.fruit.max,
+      current: c.fruit.points,
       kind: 'add' as const,
       suggestion: 'Grab a piece of whole fruit or ½ cup berries — berries punch above their weight.',
     },
     {
       id: 'legumes' as const,
       label: 'Legumes / Soy',
-      max: report.dailyScores[0].components.legumes.max,
-      current: avg((d) => d.components.legumes.points),
+      max: c.legumes.max,
+      current: c.legumes.points,
       kind: 'add' as const,
       suggestion: 'Add ½ cup beans, lentils, or 4 oz tofu to your next meal.',
     },
     {
       id: 'wholeGrains' as const,
       label: 'Whole grains',
-      max: report.dailyScores[0].components.wholeGrains.max,
-      current: avg((d) => d.components.wholeGrains.points),
+      max: c.wholeGrains.max,
+      current: c.wholeGrains.points,
       kind: 'add' as const,
       suggestion: 'Swap white rice/bread for oats, quinoa, brown rice, or 100% whole-wheat bread.',
     },
     {
       id: 'nutsSeeds' as const,
       label: 'Nuts / Seeds',
-      max: report.dailyScores[0].components.nutsSeeds.max,
-      current: avg((d) => d.components.nutsSeeds.points),
+      max: c.nutsSeeds.max,
+      current: c.nutsSeeds.points,
       kind: 'add' as const,
       suggestion: 'Have a 1 oz handful of walnuts, almonds, or pistachios as a snack.',
     },
     {
       id: 'healthyFat' as const,
       label: 'Healthy fat',
-      max: report.dailyScores[0].components.healthyFat.max,
-      current: avg((d) => d.components.healthyFat.points),
+      max: c.healthyFat.max,
+      current: c.healthyFat.points,
       kind: 'add' as const,
       suggestion: 'Drizzle 1 tbsp extra-virgin olive oil on your next meal, or add ½ avocado.',
     },
     {
       id: 'fish' as const,
       label: 'Fish',
-      max: report.dailyScores[0].components.fish.max,
-      current: avg((d) => d.components.fish.points),
+      max: c.fish.max,
+      current: c.fish.points,
       kind: 'add' as const,
       suggestion: 'Plan a 3.5 oz serving of salmon, sardines, or mackerel this week — 2 servings maxes this out.',
     },
     {
       id: 'sugaryDrinks' as const,
       label: 'Sugary drinks',
-      max: report.dailyScores[0].components.sugaryDrinks.max,
-      current: avg((d) => d.components.sugaryDrinks.points),
+      max: c.sugaryDrinks.max,
+      current: c.sugaryDrinks.points,
       kind: 'avoid' as const,
       suggestion: 'Swap sweetened drinks (soda, juice, sweet coffee) for water, sparkling water, or unsweetened tea.',
     },
     {
       id: 'redProcessedMeat' as const,
       label: 'Red / processed meat',
-      max: report.dailyScores[0].components.redProcessedMeat.max,
-      current: avg((d) => d.components.redProcessedMeat.points),
+      max: c.redProcessedMeat.max,
+      current: c.redProcessedMeat.points,
       kind: 'avoid' as const,
       suggestion: 'Swap red meat or deli meat for poultry, fish, tofu, or beans at your next meal.',
     },
     {
       id: 'ultraProcessed' as const,
       label: 'Ultra-processed',
-      max: report.dailyScores[0].components.ultraProcessed.max,
-      current: avg((d) => d.components.ultraProcessed.points),
+      max: c.ultraProcessed.max,
+      current: c.ultraProcessed.points,
       kind: 'avoid' as const,
-      suggestion: 'Skip packaged snacks, fast food, and sweetened cereals today — pick fruit, nuts, or yogurt.',
+      suggestion: 'Skip packaged snacks, fast food, and sweetened cereals — pick fruit, nuts, or yogurt.',
     },
   ]
 
-  // Pick the component with the largest absolute gap (max - current points).
-  // Tie-breaker: prefer components with higher max (more potential upside).
-  let best = components[0]
+  let best = candidates[0]
   let bestGap = best.max - best.current
-  for (const c of components.slice(1)) {
-    const gap = c.max - c.current
-    if (gap > bestGap + 0.01 || (Math.abs(gap - bestGap) < 0.01 && c.max > best.max)) {
-      best = c
+  for (const cand of candidates.slice(1)) {
+    const gap = cand.max - cand.current
+    if (gap > bestGap + 0.01 || (Math.abs(gap - bestGap) < 0.01 && cand.max > best.max)) {
+      best = cand
       bestGap = gap
     }
   }
@@ -458,25 +486,5 @@ export function getNextMealTip(report: LongevityReport): NextMealTip {
     gapPoints: Math.round(bestGap * 10) / 10,
     suggestion: best.suggestion,
     kind: best.kind,
-  }
-}
-
-function avgSubscores(days: LongevityDailyScore[]): LongevitySubscores {
-  const withData = days.filter((d) => d.hasData)
-  const avg = (picker: (d: LongevityDailyScore) => LongevityComponentScore): LongevityComponentScore => {
-    if (withData.length === 0) {
-      const first = picker(days[0] || ({} as LongevityDailyScore))
-      return mkComponent(0, first?.max ?? 0, 0)
-    }
-    const totalPts = withData.reduce((s, d) => s + picker(d).points, 0)
-    const max = picker(withData[0]).max
-    return mkComponent(totalPts / withData.length, max, 0)
-  }
-
-  return {
-    plants: avg((d) => d.subscores.plants),
-    fatQuality: avg((d) => d.subscores.fatQuality),
-    proteinQuality: avg((d) => d.subscores.proteinQuality),
-    harmReduction: avg((d) => d.subscores.harmReduction),
   }
 }
