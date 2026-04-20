@@ -46,7 +46,7 @@ LongevityDashboard renders: 7-day ring, today's score, subscores, day cards, tip
 | File | Role |
 |---|---|
 | [src/types/index.ts](../src/types/index.ts) | `FoodCategory`, `ProcessingLevel`, `ScoringMode`, `LongevityReport`, etc. |
-| [src/lib/longevity-score.ts](../src/lib/longevity-score.ts) | All scoring logic: `scoreDay`, `buildLongevityReport`, `getNextMealTip` |
+| [src/lib/longevity-score.ts](../src/lib/longevity-score.ts) | All scoring logic: `scoreWindow` (rolling), `scoreDay` (per-day card), `buildLongevityReport`, `getNextMealTip` |
 | [src/lib/openai.ts](../src/lib/openai.ts) | `PARSE_MEAL_PROMPT` — classifies items on the way in |
 | [src/app/api/parse-meal/route.ts](../src/app/api/parse-meal/route.ts) | Uses gpt-5-mini; passes category/serving/processing fields through |
 | [src/app/api/settings/route.ts](../src/app/api/settings/route.ts) | `scoring_mode` column; defaults to `'longevity'` |
@@ -56,6 +56,8 @@ LongevityDashboard renders: 7-day ring, today's score, subscores, day cards, tip
 | [src/components/dashboard/LongevityScoreRing.tsx](../src/components/dashboard/LongevityScoreRing.tsx) | Reusable 0-100 ring (used in header + day cards) |
 | [src/components/dashboard/LongevitySubscoreBar.tsx](../src/components/dashboard/LongevitySubscoreBar.tsx) | Horizontal filled bar for subscore display |
 | [src/components/dashboard/LongevityHelpSheet.tsx](../src/components/dashboard/LongevityHelpSheet.tsx) | In-app explainer reachable via `?` button |
+| [src/components/dashboard/QuickLogInput.tsx](../src/components/dashboard/QuickLogInput.tsx) | Inline quick-add card rendered between the score ring and the day list. "Log it" and "Evaluate" flows; rolling-score delta + per-component gain chips |
+| [src/components/logging/LogMealSheet.tsx](../src/components/logging/LogMealSheet.tsx) | Full-sheet meal editor. Accepts `hideMindfulness` to drop the hunger/calm inputs (used in longevity mode) |
 | [src/components/dashboard/CategoryChips.tsx](../src/components/dashboard/CategoryChips.tsx) | Shared chip rendering for item categories |
 | [src/components/dashboard/MealRow.tsx](../src/components/dashboard/MealRow.tsx) | Mode-aware: macros shows efficiency, longevity shows category chips |
 | [scripts/backfill-longevity.mjs](../scripts/backfill-longevity.mjs) | One-off re-classifier (see [BACKFILL.md](./BACKFILL.md)) |
@@ -183,6 +185,17 @@ The dashboard routes on `settings.scoringMode`:
 Toggle in Settings → Scoring Mode. Both modes read the same `meals` table; the data model is a superset.
 
 In longevity mode, `MealRow` swaps the protein/fiber efficiency badges for category chips. In macros mode, everything behaves as it always did. The goal input fields and BMR calculator in settings are hidden in longevity mode (they don't apply).
+
+## Quick Log (longevity mode only)
+
+A compact inline input card rendered in [LongevityDashboard](../src/components/dashboard/LongevityDashboard.tsx) between the score ring and the day list. Reduces "tap the + button → pick meal type → type" down to a single visible input.
+
+- **Auto meal type by time of day**: breakfast 04:00–10:30, lunch 10:30–15:00, dinner 15:00–20:30, snack otherwise. Override via the pill dropdown.
+- **Two buttons**:
+  - **Log it** — for something you just ate. Parses via `POST /api/parse-meal`, shows parsed items with category chips + the rolling-score delta. Save button commits.
+  - **Evaluate** — for something you're considering. Same preview, but the primary button reads "Looks good, save" and the secondary reads "Skip" (so you can back out if the impact isn't what you wanted).
+- **Preview block** shows the rolling score before → after with a delta, plus a row of per-component gain/loss chips (`+10.0 Fruit`, `+2.1 Healthy fat`, etc.) computed from `componentsRolling` before vs. after. Because the score is rolling and density-normalized, adding any item always moves the score in its actual direction — there's no "partial day drags today's score down" artifact.
+- **No mindfulness inputs**: `LogMealSheet` accepts a `hideMindfulness` prop, set true from both `LongevityDashboard` and the quick-log flow. Hunger/calm are preserved in macros mode only.
 
 ## Related
 

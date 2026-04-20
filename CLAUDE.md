@@ -29,8 +29,9 @@ FitnessLove is a Next.js 16 nutrition tracking app with AI-powered meal logging.
 2. **Authentication**: Email + password via Supabase Auth → AuthProvider manages session state → redirects to `/` on success
 3. **Data Fetching**:
    - Macros mode: `GET /api/meals?days=7` → aggregates into `DayData[]`
-   - Longevity mode: `GET /api/meals?days=14` → client computes `LongevityReport` via `buildLongevityReport()` (14 days needed for week-over-week delta)
+   - Longevity mode: `GET /api/meals?days=14` → client computes `LongevityReport` via `buildLongevityReport()` (14 days needed for current-vs-prior-7d delta)
 4. **Dashboard Routing**: The root `Dashboard` component reads `settings.scoringMode` and renders either `MacrosDashboard` (original) or `LongevityDashboard` (new).
+5. **Quick Log**: The longevity view renders a `QuickLogInput` card between the score ring and the day list. Meal type is auto-picked from time of day (breakfast 04:00–10:30, lunch 10:30–15:00, dinner 15:00–20:30, snack otherwise). Two flows — "Log it" and "Evaluate" — both parse via the same `/api/parse-meal` endpoint, show parsed items + a rolling-score delta preview with per-component gain chips, and require confirmation before saving. Mindfulness inputs (hunger/calm) are hidden in longevity mode via the `hideMindfulness` prop on `LogMealSheet`.
 
 ### Auth Architecture
 
@@ -43,7 +44,7 @@ FitnessLove is a Next.js 16 nutrition tracking app with AI-powered meal logging.
 
 Two independent scoring systems; which one is displayed is controlled by `settings.scoringMode`.
 
-**Longevity (default)** — adapted AHEI-2010 0-100 score. The 7-day rolling average is the primary metric. 10 components (6 positive density-normalized + 1 weekly fish + 3 reverse-scored harm categories) sum to 100. Subscores: Plants (0-50), Fat Quality (0-10), Protein Quality (0-10), Harm Reduction (0-30). See [docs/LONGEVITY_SCORE.md](docs/LONGEVITY_SCORE.md) for the full model, scoring library, UI component map, and how the "Next best bite" tip is computed.
+**Longevity (default)** — adapted AHEI-2010 0-100 score. The score is a **pure 7-day rolling window**, computed in one shot from all items in the last 7 days (not an average of daily scores). 10 components (6 positive density-normalized + 1 weekly fish + 3 reverse-scored harm categories) sum to 100. Subscores: Plants (0-50), Fat Quality (0-10), Protein Quality (0-10), Harm Reduction (0-30). Logging any item moves the score by exactly its contribution to the window totals — no daily reset, no empty-day math. Per-day cards still render for pattern-spotting but are secondary. See [docs/LONGEVITY_SCORE.md](docs/LONGEVITY_SCORE.md) for the full model, scoring library, UI component map, and how the "Next best bite" tip is computed.
 
 **Macros (legacy)** — three metrics from `src/types/index.ts`:
 - **Calories**: 100% if under goal, degrades to 0 at 120% of goal
@@ -77,13 +78,14 @@ src/
 │   │   ├── DailyMetrics.tsx        # Macros-mode 3-metric row
 │   │   ├── MealRow.tsx             # Mode-aware: efficiency (macros) vs chips (longevity)
 │   │   ├── MindfulnessReport.tsx   # Hunger/calm weekly report
-│   │   ├── LongevityDashboard.tsx  # 7-day score card + subscores + day list + tip
+│   │   ├── LongevityDashboard.tsx  # Rolling score card + quick-log + subscores + day list + tip
 │   │   ├── LongevityDayCard.tsx    # Longevity-mode day card
 │   │   ├── LongevityScoreRing.tsx  # Reusable 0-100 ring
 │   │   ├── LongevitySubscoreBar.tsx # Horizontal filled bar for subscores
 │   │   ├── LongevityHelpSheet.tsx  # In-app "how the score works" explainer
+│   │   ├── QuickLogInput.tsx       # Inline quick-add with Log-it / Evaluate flows + rolling-delta preview
 │   │   └── CategoryChips.tsx       # Shared chip rendering for food categories
-│   ├── logging/                # LogMealSheet
+│   ├── logging/                # LogMealSheet (accepts hideMindfulness prop for longevity mode)
 │   ├── settings/               # SettingsSheet (incl. Macros/Longevity toggle)
 │   └── ui/                     # shadcn components
 ├── lib/
@@ -91,7 +93,7 @@ src/
 │   ├── supabase-server.ts      # Server-side Supabase (uses cookies)
 │   ├── openai.ts               # OpenAI client + PARSE_MEAL_PROMPT (with longevity categories)
 │   ├── mindfulness.ts          # Mindful eating calculations and thresholds
-│   └── longevity-score.ts      # scoreDay, buildLongevityReport, getNextMealTip
+│   └── longevity-score.ts      # scoreWindow (rolling), scoreDay (per-day card), buildLongevityReport, getNextMealTip
 ├── middleware.ts               # Auth session sync on every request
 └── types/index.ts              # All TypeScript types + macros scoring logic
 ```
