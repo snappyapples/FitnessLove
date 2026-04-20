@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { isToday, format } from 'date-fns'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Lightbulb } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { FloatingAddButton } from '../FloatingAddButton'
 import { LogMealSheet } from '../logging/LogMealSheet'
 import { LongevityScoreRing } from './LongevityScoreRing'
 import { LongevitySubscoreBar } from './LongevitySubscoreBar'
 import { LongevityDayCard } from './LongevityDayCard'
+import { LongevityHelpSheet } from './LongevityHelpSheet'
 import type { DayData, FoodItem, LongevityReport, Meal, MealContext, MealType } from '@/types'
-import { buildLongevityReport } from '@/lib/longevity-score'
+import { buildLongevityReport, getNextMealTip } from '@/lib/longevity-score'
 import { cn } from '@/lib/utils'
 
 function DeltaBadge({ delta }: { delta: number | null }) {
@@ -177,16 +178,19 @@ export function LongevityDashboard() {
               strokeWidth={12}
             />
             <div className="flex-1 space-y-2">
-              <div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide">
-                  7-Day Longevity Score
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                    7-Day Longevity Score
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-0.5">
+                    Today:{' '}
+                    <span className="font-semibold text-foreground tabular-nums">
+                      {report.todayScore.hasData ? Math.round(report.todayScore.totalScore) : '—'}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground mt-0.5">
-                  Today:{' '}
-                  <span className="font-semibold text-foreground tabular-nums">
-                    {report.todayScore.hasData ? Math.round(report.todayScore.totalScore) : '—'}
-                  </span>
-                </div>
+                <LongevityHelpSheet />
               </div>
               <DeltaBadge delta={report.weeklyDelta} />
             </div>
@@ -198,6 +202,31 @@ export function LongevityDashboard() {
             <LongevitySubscoreBar label="Protein (fish)" score={report.subscoresRolling.proteinQuality} />
             <LongevitySubscoreBar label="Harm Reduction" score={report.subscoresRolling.harmReduction} />
           </div>
+
+          {/* Next-best-bite tip */}
+          {(() => {
+            const tip = getNextMealTip(report)
+            if (tip.component === 'none' || tip.gapPoints < 0.5) return null
+            return (
+              <div className="mt-4 pt-4 border-t flex items-start gap-3">
+                <div className="shrink-0 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Lightbulb className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Next best bite
+                    <span className="ml-1.5 text-primary normal-case font-semibold tabular-nums">
+                      +{tip.gapPoints.toFixed(1)} pts available
+                    </span>
+                  </div>
+                  <div className="text-sm mt-0.5">
+                    <span className="font-medium">{tip.label}:</span>{' '}
+                    <span className="text-muted-foreground">{tip.suggestion}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
         </Card>
       )}
 

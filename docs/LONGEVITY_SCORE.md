@@ -2,6 +2,27 @@
 
 An adapted AHEI-2010 style 0-100 score tracking diet quality over time. The **7-day rolling average** is the primary metric.
 
+## How to score 100 in a day (at ~2000 kcal)
+
+| Pts | Component | Target |
+|---|---|---|
+| 15 | Vegetables | 5 servings (½ cup cooked or 1 cup raw each) |
+| 10 | Fruit | 2 servings (1 piece or ½ cup) |
+| 10 | Legumes / Soy | 1 serving (½ cup cooked beans/lentils or 4 oz tofu) |
+| 10 | Whole grains | 3 servings (½ cup oats/quinoa/brown rice or 1 slice whole-wheat bread) |
+| 5 | Nuts / Seeds | 1 serving (1 oz) |
+| 10 | Healthy fat | 2 servings (EVOO, avocado, olives, nuts/seeds, fatty fish) |
+| 10 | Fish (weekly) | 2 servings of fatty fish over the past 7 days (rolling) |
+| 10 | No sugary drinks | Zero sweetened drinks |
+| 10 | No red/processed meat | Zero beef, pork, lamb, bacon, sausage, deli meat |
+| 10 | UPF under control | Ultra-processed < 10% of daily calories |
+
+Positive-food targets are density-normalized per 1000 kcal, so if you eat fewer calories, you need proportionally less to hit the target.
+
+**Plants subscore (0-50)** is the sum of vegetables + fruit + legumes + whole grains + nuts/seeds. Hitting 50/50 means nailing all five plant targets in one day. This is half the entire daily score — the single strongest longevity lever.
+
+**"Next best bite" tip** on the dashboard points at the component with the largest current gap between your rolling 7-day average and the max. Acting on it is the highest-ROI food choice you can make next.
+
 ## Supabase schema migration
 
 Run this once in the Supabase SQL editor (Project → SQL → New query):

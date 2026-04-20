@@ -317,6 +317,150 @@ export function buildLongevityReport(meals: Meal[], today: Date = new Date()): L
   }
 }
 
+/**
+ * Returns the single highest-impact food recommendation to improve the
+ * 7-day rolling score. Looks at which scoring component has the largest gap
+ * between current average and max, then suggests a specific food.
+ */
+export interface NextMealTip {
+  component:
+    | 'vegetables'
+    | 'fruit'
+    | 'legumes'
+    | 'wholeGrains'
+    | 'nutsSeeds'
+    | 'healthyFat'
+    | 'fish'
+    | 'sugaryDrinks'
+    | 'redProcessedMeat'
+    | 'ultraProcessed'
+    | 'none'
+  label: string          // short component label, e.g. "Vegetables"
+  gapPoints: number      // how many points you could gain in the rolling avg
+  suggestion: string     // concrete food suggestion
+  kind: 'add' | 'avoid'  // add this food vs. cut this
+}
+
+export function getNextMealTip(report: LongevityReport): NextMealTip {
+  // Compute rolling-avg per component by averaging across days with data.
+  const withData = report.dailyScores.filter((d) => d.hasData)
+  if (withData.length === 0) {
+    return {
+      component: 'none',
+      label: '',
+      gapPoints: 0,
+      suggestion: 'Log a meal to get a personalized tip.',
+      kind: 'add',
+    }
+  }
+
+  const avg = (picker: (d: LongevityDailyScore) => number): number =>
+    withData.reduce((s, d) => s + picker(d), 0) / withData.length
+
+  const components = [
+    {
+      id: 'vegetables' as const,
+      label: 'Vegetables',
+      max: report.dailyScores[0].components.vegetables.max,
+      current: avg((d) => d.components.vegetables.points),
+      kind: 'add' as const,
+      suggestion: 'Add a 1-cup salad or ½ cup roasted broccoli/cauliflower to your next meal.',
+    },
+    {
+      id: 'fruit' as const,
+      label: 'Fruit',
+      max: report.dailyScores[0].components.fruit.max,
+      current: avg((d) => d.components.fruit.points),
+      kind: 'add' as const,
+      suggestion: 'Grab a piece of whole fruit or ½ cup berries — berries punch above their weight.',
+    },
+    {
+      id: 'legumes' as const,
+      label: 'Legumes / Soy',
+      max: report.dailyScores[0].components.legumes.max,
+      current: avg((d) => d.components.legumes.points),
+      kind: 'add' as const,
+      suggestion: 'Add ½ cup beans, lentils, or 4 oz tofu to your next meal.',
+    },
+    {
+      id: 'wholeGrains' as const,
+      label: 'Whole grains',
+      max: report.dailyScores[0].components.wholeGrains.max,
+      current: avg((d) => d.components.wholeGrains.points),
+      kind: 'add' as const,
+      suggestion: 'Swap white rice/bread for oats, quinoa, brown rice, or 100% whole-wheat bread.',
+    },
+    {
+      id: 'nutsSeeds' as const,
+      label: 'Nuts / Seeds',
+      max: report.dailyScores[0].components.nutsSeeds.max,
+      current: avg((d) => d.components.nutsSeeds.points),
+      kind: 'add' as const,
+      suggestion: 'Have a 1 oz handful of walnuts, almonds, or pistachios as a snack.',
+    },
+    {
+      id: 'healthyFat' as const,
+      label: 'Healthy fat',
+      max: report.dailyScores[0].components.healthyFat.max,
+      current: avg((d) => d.components.healthyFat.points),
+      kind: 'add' as const,
+      suggestion: 'Drizzle 1 tbsp extra-virgin olive oil on your next meal, or add ½ avocado.',
+    },
+    {
+      id: 'fish' as const,
+      label: 'Fish',
+      max: report.dailyScores[0].components.fish.max,
+      current: avg((d) => d.components.fish.points),
+      kind: 'add' as const,
+      suggestion: 'Plan a 3.5 oz serving of salmon, sardines, or mackerel this week — 2 servings maxes this out.',
+    },
+    {
+      id: 'sugaryDrinks' as const,
+      label: 'Sugary drinks',
+      max: report.dailyScores[0].components.sugaryDrinks.max,
+      current: avg((d) => d.components.sugaryDrinks.points),
+      kind: 'avoid' as const,
+      suggestion: 'Swap sweetened drinks (soda, juice, sweet coffee) for water, sparkling water, or unsweetened tea.',
+    },
+    {
+      id: 'redProcessedMeat' as const,
+      label: 'Red / processed meat',
+      max: report.dailyScores[0].components.redProcessedMeat.max,
+      current: avg((d) => d.components.redProcessedMeat.points),
+      kind: 'avoid' as const,
+      suggestion: 'Swap red meat or deli meat for poultry, fish, tofu, or beans at your next meal.',
+    },
+    {
+      id: 'ultraProcessed' as const,
+      label: 'Ultra-processed',
+      max: report.dailyScores[0].components.ultraProcessed.max,
+      current: avg((d) => d.components.ultraProcessed.points),
+      kind: 'avoid' as const,
+      suggestion: 'Skip packaged snacks, fast food, and sweetened cereals today — pick fruit, nuts, or yogurt.',
+    },
+  ]
+
+  // Pick the component with the largest absolute gap (max - current points).
+  // Tie-breaker: prefer components with higher max (more potential upside).
+  let best = components[0]
+  let bestGap = best.max - best.current
+  for (const c of components.slice(1)) {
+    const gap = c.max - c.current
+    if (gap > bestGap + 0.01 || (Math.abs(gap - bestGap) < 0.01 && c.max > best.max)) {
+      best = c
+      bestGap = gap
+    }
+  }
+
+  return {
+    component: best.id,
+    label: best.label,
+    gapPoints: Math.round(bestGap * 10) / 10,
+    suggestion: best.suggestion,
+    kind: best.kind,
+  }
+}
+
 function avgSubscores(days: LongevityDailyScore[]): LongevitySubscores {
   const withData = days.filter((d) => d.hasData)
   const avg = (picker: (d: LongevityDailyScore) => LongevityComponentScore): LongevityComponentScore => {
