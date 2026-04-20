@@ -145,31 +145,31 @@ export function QuickLogInput({ meals, onSave }: QuickLogInputProps) {
       <Card className="mb-4 p-4">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <div className="text-xs text-muted-foreground uppercase tracking-wide">
+            <div className="text-sm font-semibold">
               {isEval ? 'Previewing' : 'Logging'} · {MEAL_LABELS[mealType]}
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5">
+            <div className="text-sm text-muted-foreground mt-0.5">
               {isEval ? 'Not saved yet — review the impact below' : 'Review before saving'}
             </div>
           </div>
           <button
             onClick={resetAll}
-            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground"
+            className="p-2 rounded-md hover:bg-muted text-muted-foreground"
             aria-label="Cancel"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="space-y-1.5 mb-3">
+        <div className="space-y-2 mb-3">
           {items.map((item) => (
-            <div key={item.id} className="p-2 bg-secondary/50 rounded-md">
-              <div className="text-sm font-medium">{item.name}</div>
-              <div className="text-xs text-muted-foreground">
+            <div key={item.id} className="p-2.5 bg-secondary/50 rounded-md">
+              <div className="text-base font-medium">{item.name}</div>
+              <div className="text-sm text-muted-foreground">
                 {item.calories} cal
                 {item.quantity && ` · ${item.quantity}`}
               </div>
-              <div className="mt-1">
+              <div className="mt-1.5">
                 <CategoryChips item={item} />
               </div>
             </div>
@@ -193,10 +193,10 @@ export function QuickLogInput({ meals, onSave }: QuickLogInputProps) {
           </div>
         )}
 
-        {error && <div className="mb-2 text-xs text-destructive">{error}</div>}
+        {error && <div className="mb-2 text-sm text-destructive">{error}</div>}
 
         <div className="flex gap-2">
-          <Button onClick={handleSave} disabled={saving} className="flex-1" size="sm">
+          <Button onClick={handleSave} disabled={saving} className="flex-1 h-11 text-base">
             {saving ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
@@ -204,7 +204,7 @@ export function QuickLogInput({ meals, onSave }: QuickLogInputProps) {
             )}
             {isEval ? 'Looks good, save' : 'Save'}
           </Button>
-          <Button onClick={resetAll} disabled={saving} variant="outline" size="sm">
+          <Button onClick={resetAll} disabled={saving} variant="outline" className="h-11 text-base">
             {isEval ? 'Skip' : 'Cancel'}
           </Button>
         </div>
@@ -216,19 +216,19 @@ export function QuickLogInput({ meals, onSave }: QuickLogInputProps) {
     <Card className="mb-4 p-4">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium">Quick log</span>
+          <Sparkles className="w-5 h-5 text-primary" />
+          <span className="text-base font-semibold">Quick log</span>
         </div>
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setTypeMenuOpen((v) => !v)}
-            className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-secondary hover:bg-secondary/70 transition-colors"
+            className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-full bg-secondary hover:bg-secondary/70 transition-colors"
           >
             {MEAL_LABELS[mealType]}
-            <ChevronDown className="w-3 h-3" />
+            <ChevronDown className="w-4 h-4" />
           </button>
           {typeMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 z-10 bg-popover border rounded-md shadow-md overflow-hidden min-w-[110px]">
+            <div className="absolute right-0 top-full mt-1 z-10 bg-popover border rounded-md shadow-md overflow-hidden min-w-[130px]">
               {MEAL_TYPES.map((t) => (
                 <button
                   key={t}
@@ -236,7 +236,7 @@ export function QuickLogInput({ meals, onSave }: QuickLogInputProps) {
                     setMealType(t)
                     setTypeMenuOpen(false)
                   }}
-                  className={`block w-full text-left px-3 py-1.5 text-xs hover:bg-secondary ${
+                  className={`block w-full text-left px-3 py-2 text-sm hover:bg-secondary ${
                     t === mealType ? 'bg-secondary/50 font-medium' : ''
                   }`}
                 >
@@ -253,16 +253,16 @@ export function QuickLogInput({ meals, onSave }: QuickLogInputProps) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         disabled={parsing}
-        className="min-h-[60px] mb-2"
+        className="min-h-[70px] text-base mb-2"
       />
 
-      {error && <div className="mb-2 text-xs text-destructive">{error}</div>}
+      {error && <div className="mb-2 text-sm text-destructive">{error}</div>}
 
       <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={() => handleParse('log')}
           disabled={!input.trim() || parsing}
-          size="sm"
+          className="h-11 text-base"
         >
           {parsing && intent === 'log' ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -275,7 +275,7 @@ export function QuickLogInput({ meals, onSave }: QuickLogInputProps) {
           onClick={() => handleParse('evaluate')}
           disabled={!input.trim() || parsing}
           variant="outline"
-          size="sm"
+          className="h-11 text-base"
         >
           {parsing && intent === 'evaluate' ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -309,12 +309,12 @@ function ScoreDeltaBlock({
       : 'text-muted-foreground'
   return (
     <div>
-      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</div>
-      <div className="flex items-baseline gap-1.5 tabular-nums mt-0.5">
-        <span className="text-sm text-muted-foreground">{Math.round(before)}</span>
-        <span className="text-xs text-muted-foreground">→</span>
-        <span className="text-base font-semibold">{Math.round(after)}</span>
-        <span className={`text-xs font-medium ${color}`}>
+      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</div>
+      <div className="flex items-baseline gap-1.5 tabular-nums mt-1">
+        <span className="text-base text-muted-foreground">{Math.round(before)}</span>
+        <span className="text-sm text-muted-foreground">→</span>
+        <span className="text-xl font-bold">{Math.round(after)}</span>
+        <span className={`text-sm font-semibold ${color}`}>
           {sign}
           {delta.toFixed(1)}
         </span>

@@ -23,18 +23,17 @@ function textColorFor(pct: number): string {
 
 export function LongevitySubscoreBar({ label, score, className }: Props) {
   const pct = score.max > 0 ? score.points / score.max : 0
-  const pctDisplay = Math.round(pct * 100)
 
   return (
     <div className={cn('space-y-1', className)}>
-      <div className="flex items-baseline justify-between text-xs">
+      <div className="flex items-baseline justify-between text-sm">
         <span className="font-medium text-foreground">{label}</span>
-        <span className={cn('tabular-nums', textColorFor(pct))}>
-          {score.points.toFixed(1)} / {score.max}
-          <span className="text-muted-foreground ml-1">({pctDisplay}%)</span>
+        <span className={cn('tabular-nums font-medium', textColorFor(pct))}>
+          {score.points.toFixed(1)}
+          <span className="text-muted-foreground font-normal">/{score.max}</span>
         </span>
       </div>
-      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+      <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">
         <div
           className={cn('h-full transition-all duration-500', colorFor(pct))}
           style={{ width: `${Math.max(0, Math.min(100, pct * 100))}%` }}

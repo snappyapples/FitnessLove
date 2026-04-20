@@ -248,11 +248,11 @@ export function MealRow({ meal, onEdit, onDelete }: MealRowProps) {
       >
         <div className="flex items-center gap-3">
           <span className="text-muted-foreground">{mealIcons[meal.type]}</span>
-          <span className="font-medium">{mealLabels[meal.type]}</span>
+          <span className="font-semibold text-base">{mealLabels[meal.type]}</span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex gap-3 text-sm items-center">
-            <span className="text-muted-foreground">{meal.totalCalories} cal</span>
+            <span className="text-muted-foreground font-medium">{meal.totalCalories} cal</span>
             {!isLongevity && (
               <>
                 <RatioMetric
@@ -286,19 +286,19 @@ export function MealRow({ meal, onEdit, onDelete }: MealRowProps) {
         <div className="border-t bg-secondary/30 p-3 space-y-1.5">
           {meal.items.map((item) =>
             isLongevity ? (
-              <div key={item.id} className="flex items-start justify-between gap-2 text-sm py-1">
+              <div key={item.id} className="flex items-start justify-between gap-2 text-base py-1.5">
                 <div className="flex-1 min-w-0">
-                  <div className="truncate">
+                  <div className="truncate font-medium">
                     {item.name}
                     {item.quantity && (
-                      <span className="text-muted-foreground ml-1 text-xs">({item.quantity})</span>
+                      <span className="text-muted-foreground ml-1 text-sm font-normal">({item.quantity})</span>
                     )}
                   </div>
-                  <div className="mt-1">
+                  <div className="mt-1.5">
                     <CategoryChips item={item} />
                   </div>
                 </div>
-                <span className="text-muted-foreground text-right text-xs whitespace-nowrap pt-0.5">{item.calories} cal</span>
+                <span className="text-muted-foreground text-right text-sm whitespace-nowrap pt-0.5">{item.calories} cal</span>
               </div>
             ) : (
               <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center text-sm">
@@ -319,24 +319,24 @@ export function MealRow({ meal, onEdit, onDelete }: MealRowProps) {
               {meal.context.notes}
             </p>
           )}
-          <div className="flex items-center gap-4 mt-2 pt-2 border-t">
+          <div className="flex items-center gap-4 mt-3 pt-3 border-t">
             <button
               onClick={handleEdit}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground py-1"
             >
-              <Pencil className="w-3 h-3" />
+              <Pencil className="w-4 h-4" />
               Edit
             </button>
             <button
               onClick={handleDelete}
               className={cn(
-                "flex items-center gap-2 text-sm",
+                "flex items-center gap-2 text-sm font-medium py-1",
                 confirmDelete
-                  ? "text-red-500 font-medium"
+                  ? "text-red-500"
                   : "text-muted-foreground hover:text-red-500"
               )}
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 className="w-4 h-4" />
               {confirmDelete ? "Tap again to delete" : "Delete"}
             </button>
           </div>
@@ -359,9 +359,9 @@ export function EmptyMealSlot({ type, onLog }: EmptyMealSlotProps) {
     >
       <div className="flex items-center gap-3">
         <span>{mealIcons[type]}</span>
-        <span>{mealLabels[type]}</span>
+        <span className="text-base">{mealLabels[type]}</span>
       </div>
-      <span className="text-sm">+ Log</span>
+      <span className="text-sm font-medium">+ Log</span>
     </button>
   )
 }

@@ -25,8 +25,8 @@ function DeltaBadge({ delta }: { delta: number | null }) {
   const color = isUp ? 'text-quality-green' : isDown ? 'text-quality-red' : 'text-muted-foreground'
   const sign = delta > 0 ? '+' : ''
   return (
-    <div className={cn('flex items-center gap-1 text-xs font-medium', color)}>
-      <Icon className="w-3 h-3" />
+    <div className={cn('flex items-center gap-1 text-sm font-medium', color)}>
+      <Icon className="w-4 h-4" />
       <span>
         {sign}
         {delta.toFixed(1)} vs last week
@@ -194,12 +194,12 @@ export function LongevityDashboard() {
             <div className="flex-1 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                  <div className="text-xs text-muted-foreground uppercase tracking-wide font-medium">
                     7-Day Longevity Score
                   </div>
-                  <div className="text-sm text-muted-foreground mt-0.5">
+                  <div className="text-base text-muted-foreground mt-1">
                     Today:{' '}
-                    <span className="font-semibold text-foreground tabular-nums">
+                    <span className="text-lg font-bold text-foreground tabular-nums">
                       {report.todayScore.hasData ? Math.round(report.todayScore.totalScore) : '—'}
                     </span>
                   </div>
@@ -223,18 +223,18 @@ export function LongevityDashboard() {
             if (tip.component === 'none' || tip.gapPoints < 0.5) return null
             return (
               <div className="mt-4 pt-4 border-t flex items-start gap-3">
-                <div className="shrink-0 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Lightbulb className="w-4 h-4 text-primary" />
+                <div className="shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Lightbulb className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Next best bite
-                    <span className="ml-1.5 text-primary normal-case font-semibold tabular-nums">
+                    <span className="ml-1.5 text-primary normal-case font-semibold tabular-nums text-sm">
                       +{tip.gapPoints.toFixed(1)} pts available
                     </span>
                   </div>
-                  <div className="text-sm mt-0.5">
-                    <span className="font-medium">{tip.label}:</span>{' '}
+                  <div className="text-base mt-1 leading-snug">
+                    <span className="font-semibold">{tip.label}:</span>{' '}
                     <span className="text-muted-foreground">{tip.suggestion}</span>
                   </div>
                 </div>

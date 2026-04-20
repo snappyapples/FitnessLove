@@ -33,10 +33,10 @@ function HelpButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+      className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
       aria-label="How the score works"
     >
-      <HelpCircle className="w-4 h-4" />
+      <HelpCircle className="w-5 h-5" />
     </button>
   )
 }
@@ -56,7 +56,7 @@ export function LongevityHelpSheet() {
           <SheetTitle>How the Longevity Score works</SheetTitle>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5 text-sm">
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-5 text-base leading-relaxed">
           {/* Intro */}
           <section className="space-y-2">
             <p>
@@ -77,23 +77,23 @@ export function LongevityHelpSheet() {
               <table className="w-full">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="text-left px-3 py-2 text-xs font-medium">Pts</th>
-                    <th className="text-left px-3 py-2 text-xs font-medium">Component</th>
-                    <th className="text-left px-3 py-2 text-xs font-medium">Target</th>
+                    <th className="text-left px-3 py-2 text-sm font-semibold">Pts</th>
+                    <th className="text-left px-3 py-2 text-sm font-semibold">Component</th>
+                    <th className="text-left px-3 py-2 text-sm font-semibold">Target</th>
                   </tr>
                 </thead>
                 <tbody>
                   {TARGETS.map((row) => (
                     <tr key={row.label} className="border-t">
-                      <td className="px-3 py-2 text-xs font-bold tabular-nums">{row.pts}</td>
-                      <td className="px-3 py-2 text-xs font-medium whitespace-nowrap">{row.label}</td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">{row.what}</td>
+                      <td className="px-3 py-2.5 text-sm font-bold tabular-nums">{row.pts}</td>
+                      <td className="px-3 py-2.5 text-sm font-medium whitespace-nowrap">{row.label}</td>
+                      <td className="px-3 py-2.5 text-sm text-muted-foreground">{row.what}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Positive-food targets scale with calories — if you eat less, you need proportionally less to hit the
               target (the score is density-normalized per 1,000 kcal).
             </p>
@@ -107,7 +107,7 @@ export function LongevityHelpSheet() {
                 <dt className="font-medium">
                   Plants <span className="text-muted-foreground font-normal">(0–50)</span>
                 </dt>
-                <dd className="text-xs text-muted-foreground">
+                <dd className="text-sm text-muted-foreground">
                   Vegetables + fruit + legumes + whole grains + nuts/seeds. A perfect 50 means you hit all five
                   targets in the same day. This is half the entire daily score — the strongest longevity lever.
                 </dd>
@@ -116,7 +116,7 @@ export function LongevityHelpSheet() {
                 <dt className="font-medium">
                   Fat Quality <span className="text-muted-foreground font-normal">(0–10)</span>
                 </dt>
-                <dd className="text-xs text-muted-foreground">
+                <dd className="text-sm text-muted-foreground">
                   Servings of EVOO, avocado, olives, fatty fish, nuts/seeds. Emphasizes fat{' '}
                   <em>quality</em> over avoiding fat.
                 </dd>
@@ -125,7 +125,7 @@ export function LongevityHelpSheet() {
                 <dt className="font-medium">
                   Protein Quality <span className="text-muted-foreground font-normal">(0–10)</span>
                 </dt>
-                <dd className="text-xs text-muted-foreground">
+                <dd className="text-sm text-muted-foreground">
                   Fatty fish servings over the past 7 days. 2 servings/week hits the full target (salmon,
                   sardines, mackerel, trout, herring, anchovies).
                 </dd>
@@ -134,7 +134,7 @@ export function LongevityHelpSheet() {
                 <dt className="font-medium">
                   Harm Reduction <span className="text-muted-foreground font-normal">(0–30)</span>
                 </dt>
-                <dd className="text-xs text-muted-foreground">
+                <dd className="text-sm text-muted-foreground">
                   Reverse-scored: starts at 30 and drops for sugary drinks, red/processed meat, and
                   ultra-processed foods. Processed meat counts 2× red meat.
                 </dd>
@@ -145,7 +145,7 @@ export function LongevityHelpSheet() {
           {/* Next best bite */}
           <section className="space-y-2">
             <h3 className="font-semibold text-base">&ldquo;Next best bite&rdquo; tip</h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               The tip under your score card points at the scoring component with the biggest gap between your
               7-day rolling average and the max. Acting on it gives you the most points for the least effort —
               usually a plants gap early on, then fish or fat quality as you dial things in.
@@ -155,16 +155,16 @@ export function LongevityHelpSheet() {
           {/* What doesn't count */}
           <section className="space-y-2">
             <h3 className="font-semibold text-base">What counts as neutral</h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Some foods don&apos;t move the score either way — white rice, plain chicken/turkey, eggs, most dairy.
-              They&apos;ll show a gray <span className="inline-block px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px] font-medium">Neutral</span>{' '}
+              They&apos;ll show a gray <span className="inline-block px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-medium">Neutral</span>{' '}
               chip in the meal view, meaning the classifier evaluated them but they don&apos;t hit any scoring category.
             </p>
           </section>
 
           {/* Source */}
           <section className="pt-2 border-t">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Based on the AHEI-2010 dietary pattern (Harvard Chan School) with an added ultra-processed-food
               penalty reflecting newer NOVA-based research. Alcohol is not scored.
             </p>

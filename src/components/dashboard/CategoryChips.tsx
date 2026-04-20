@@ -41,7 +41,7 @@ export function CategoryChips({ item, size = 'xs' }: Props) {
   const showUpfFromProcessing =
     item.processingLevel === 'ultra_processed' && !cats.includes('ultra_processed')
   const allChips: FoodCategory[] = showUpfFromProcessing ? [...cats, 'ultra_processed'] : cats
-  const textSize = size === 'sm' ? 'text-xs' : 'text-[10px]'
+  const textSize = size === 'sm' ? 'text-sm' : 'text-xs'
 
   if (allChips.length === 0) {
     // Classifier evaluated the item but it doesn't fit any scoring category —
