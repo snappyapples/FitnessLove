@@ -139,7 +139,38 @@ export function SettingsSheet() {
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-4 px-4">
-          {/* Daily Goals Section */}
+          {/* Scoring Mode Section */}
+          <div className="space-y-2">
+            <h3 className="font-medium text-sm">Scoring Mode</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSettings({ ...settings, scoringMode: 'longevity' })}
+                className={`flex-1 px-3 py-2 text-sm rounded-md border text-left transition-colors ${
+                  settings.scoringMode === 'longevity'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'hover:bg-secondary'
+                }`}
+              >
+                <div className="font-medium">Longevity</div>
+                <div className="text-xs opacity-80">AHEI 0-100, 7-day rolling</div>
+              </button>
+              <button
+                onClick={() => setSettings({ ...settings, scoringMode: 'macros' })}
+                className={`flex-1 px-3 py-2 text-sm rounded-md border text-left transition-colors ${
+                  settings.scoringMode === 'macros'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'hover:bg-secondary'
+                }`}
+              >
+                <div className="font-medium">Macros</div>
+                <div className="text-xs opacity-80">Calories, protein, fiber</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Macros-only sections (hidden in longevity mode) */}
+          {settings.scoringMode === 'macros' && (
+          <>
           <div className="space-y-3">
             <h3 className="font-medium text-sm">Daily Goals</h3>
 
@@ -343,6 +374,8 @@ export function SettingsSheet() {
                 </div>
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
 
