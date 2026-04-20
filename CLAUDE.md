@@ -13,21 +13,24 @@ npm run start    # Start production server
 
 ## Architecture Overview
 
-FitnessLove is a Next.js 16 nutrition tracking app with AI-powered meal logging. Users can describe meals in natural language, and GPT-4o-mini parses them into individual food items with estimated nutritional values.
+FitnessLove is a Next.js 16 nutrition tracking app with AI-powered meal logging. Users describe meals in natural language and GPT-5-mini parses them into individual food items with nutritional values and longevity categories. The app has two scoring modes: **Longevity** (default, adapted AHEI-2010 0-100 score) and **Macros** (calories/protein/fiber efficiency view). Users toggle between them in Settings; both modes read the same meal data.
 
 ### Tech Stack
 - Next.js 16 (App Router)
 - React 19
 - Tailwind CSS 4
 - Supabase (database + auth)
-- OpenAI API (gpt-4o-mini for meal parsing)
+- OpenAI API (gpt-5-mini for meal parsing + longevity classification)
 - shadcn/ui components
 
 ### Key Data Flow
 
-1. **Meal Logging**: User describes meal → `POST /api/parse-meal` → OpenAI parses text → returns structured `FoodItem[]` → User confirms → `POST /api/meals` → Supabase
+1. **Meal Logging**: User describes meal → `POST /api/parse-meal` → OpenAI parses text AND classifies each item into longevity categories → returns `FoodItem[]` → User confirms → `POST /api/meals` → Supabase
 2. **Authentication**: Email + password via Supabase Auth → AuthProvider manages session state → redirects to `/` on success
-3. **Data Fetching**: Dashboard calls `GET /api/meals?days=7` → Server gets user from session → queries Supabase → aggregates into `DayData[]`
+3. **Data Fetching**:
+   - Macros mode: `GET /api/meals?days=7` → aggregates into `DayData[]`
+   - Longevity mode: `GET /api/meals?days=14` → client computes `LongevityReport` via `buildLongevityReport()` (14 days needed for week-over-week delta)
+4. **Dashboard Routing**: The root `Dashboard` component reads `settings.scoringMode` and renders either `MacrosDashboard` (original) or `LongevityDashboard` (new).
 
 ### Auth Architecture
 
@@ -36,14 +39,18 @@ FitnessLove is a Next.js 16 nutrition tracking app with AI-powered meal logging.
 - **AuthGuard**: Wraps protected pages, redirects to `/login` if not authenticated
 - **User Management**: Users are created manually in Supabase dashboard (Authentication > Users > Add User). No self-registration.
 
-### Scoring System
+### Scoring Systems
 
-The app tracks three metrics (defined in `src/types/index.ts`):
-- **Calories**: Score 100% if under goal, degrades as you exceed (0 at 120% of goal)
-- **Protein**: Linear score 0-100% as you approach goal
-- **Fiber**: Linear score 0-100% as you approach goal
+Two independent scoring systems; which one is displayed is controlled by `settings.scoringMode`.
 
-Overall daily score = equal weight (33.3% each) of the three metrics. Color coding uses efficiency index: `(nutrientPercent / caloriePercent) * 100` — green ≥100%, yellow ≥67%, red <67%.
+**Longevity (default)** — adapted AHEI-2010 0-100 score. The 7-day rolling average is the primary metric. 10 components (6 positive density-normalized + 1 weekly fish + 3 reverse-scored harm categories) sum to 100. Subscores: Plants (0-50), Fat Quality (0-10), Protein Quality (0-10), Harm Reduction (0-30). See [docs/LONGEVITY_SCORE.md](docs/LONGEVITY_SCORE.md) for the full model, scoring library, UI component map, and how the "Next best bite" tip is computed.
+
+**Macros (legacy)** — three metrics from `src/types/index.ts`:
+- **Calories**: 100% if under goal, degrades to 0 at 120% of goal
+- **Protein**: Linear 0-100% as you approach goal
+- **Fiber**: Linear 0-100% as you approach goal
+
+Overall macros daily score = equal weight (33.3% each). Color coding uses efficiency index: `(nutrientPercent / caloriePercent) * 100` — green ≥100%, yellow ≥67%, red <67%.
 
 ### Mindful Eating Report
 
@@ -59,22 +66,34 @@ src/
 ├── app/
 │   ├── api/
 │   │   ├── meals/route.ts      # CRUD for meals (Supabase)
-│   │   ├── settings/route.ts   # User settings (Supabase)
-│   │   └── parse-meal/route.ts # OpenAI meal parsing
+│   │   ├── settings/route.ts   # User settings incl. scoring_mode
+│   │   └── parse-meal/route.ts # OpenAI meal parsing + classification
 │   └── login/page.tsx          # Email/password login page
 ├── components/
 │   ├── auth/                   # AuthProvider, AuthGuard
-│   ├── dashboard/              # DayCard, MealRow, Dashboard, MindfulnessReport
+│   ├── dashboard/
+│   │   ├── Dashboard.tsx           # Router — branches on scoringMode
+│   │   ├── DayCard.tsx             # Macros-mode day card
+│   │   ├── DailyMetrics.tsx        # Macros-mode 3-metric row
+│   │   ├── MealRow.tsx             # Mode-aware: efficiency (macros) vs chips (longevity)
+│   │   ├── MindfulnessReport.tsx   # Hunger/calm weekly report
+│   │   ├── LongevityDashboard.tsx  # 7-day score card + subscores + day list + tip
+│   │   ├── LongevityDayCard.tsx    # Longevity-mode day card
+│   │   ├── LongevityScoreRing.tsx  # Reusable 0-100 ring
+│   │   ├── LongevitySubscoreBar.tsx # Horizontal filled bar for subscores
+│   │   ├── LongevityHelpSheet.tsx  # In-app "how the score works" explainer
+│   │   └── CategoryChips.tsx       # Shared chip rendering for food categories
 │   ├── logging/                # LogMealSheet
-│   ├── settings/               # SettingsSheet
+│   ├── settings/               # SettingsSheet (incl. Macros/Longevity toggle)
 │   └── ui/                     # shadcn components
 ├── lib/
 │   ├── supabase.ts             # Client-side Supabase (uses @supabase/ssr browser client)
 │   ├── supabase-server.ts      # Server-side Supabase (uses cookies)
-│   ├── openai.ts               # OpenAI client + prompt
-│   └── mindfulness.ts          # Mindful eating calculations and thresholds
+│   ├── openai.ts               # OpenAI client + PARSE_MEAL_PROMPT (with longevity categories)
+│   ├── mindfulness.ts          # Mindful eating calculations and thresholds
+│   └── longevity-score.ts      # scoreDay, buildLongevityReport, getNextMealTip
 ├── middleware.ts               # Auth session sync on every request
-└── types/index.ts              # All TypeScript types + scoring logic
+└── types/index.ts              # All TypeScript types + macros scoring logic
 ```
 
 ### API Authentication
@@ -91,4 +110,11 @@ Required in `.env.local`:
 ### Supabase Tables
 
 - `meals`: id, user_id, type, date, items (jsonb), total_calories, total_protein, total_fiber, context (jsonb), created_at
-- `settings`: user_id (PK), age, sex, height_feet, height_inches, weight, activity_level, calorie_goal, protein_goal, fiber_goal, updated_at
+  - Each item in the `items` jsonb includes: `id, name, calories, protein, fiber, quantity?, categories?, servings?, processingLevel?`. The longevity fields (last three) are populated by the parser; legacy pre-backfill items leave them `undefined` and the UI treats them accordingly.
+- `settings`: user_id (PK), age, sex, height_feet, height_inches, weight, activity_level, calorie_goal, protein_goal, fiber_goal, scoring_mode, updated_at
+  - `scoring_mode`: `'macros'` or `'longevity'` (default `'longevity'`). Added via SQL migration — see [docs/LONGEVITY_SCORE.md](docs/LONGEVITY_SCORE.md).
+
+## Documentation
+
+- [docs/LONGEVITY_SCORE.md](docs/LONGEVITY_SCORE.md) — full longevity scoring model, UI component map, helpers, implementation notes.
+- [docs/BACKFILL.md](docs/BACKFILL.md) — one-off re-classifier script usage, `FORCE_TERMS` targeted re-classification.
