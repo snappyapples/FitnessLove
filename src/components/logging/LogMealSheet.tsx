@@ -11,63 +11,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
-import { FoodItem, MealType, MealContext, Meal, FoodCategory } from '@/types'
-
-const CATEGORY_LABELS: Record<FoodCategory, string> = {
-  vegetable: 'Veg',
-  leafy_crucifer: 'Leafy/Cruc.',
-  fruit: 'Fruit',
-  legume_soy: 'Legume',
-  whole_grain: 'Whole Grain',
-  nut_seed: 'Nut/Seed',
-  healthy_fat: 'Healthy Fat',
-  fish_omega3: 'Fish',
-  red_meat: 'Red Meat',
-  processed_meat: 'Processed Meat',
-  sugary_drink: 'Sugary Drink',
-  ultra_processed: 'UPF',
-}
-
-const POSITIVE_CATEGORIES: FoodCategory[] = [
-  'vegetable',
-  'leafy_crucifer',
-  'fruit',
-  'legume_soy',
-  'whole_grain',
-  'nut_seed',
-  'healthy_fat',
-  'fish_omega3',
-]
-
-function CategoryChips({ item }: { item: FoodItem }) {
-  const cats = item.categories ?? []
-  // Show UPF chip if processingLevel says so but it's not in categories (belt-and-suspenders)
-  const showUpfFromProcessing =
-    item.processingLevel === 'ultra_processed' && !cats.includes('ultra_processed')
-  const allChips: FoodCategory[] = showUpfFromProcessing ? [...cats, 'ultra_processed'] : cats
-  if (allChips.length === 0) return null
-
-  return (
-    <div className="flex flex-wrap gap-1 mt-1">
-      {allChips.map((cat) => {
-        const isPositive = POSITIVE_CATEGORIES.includes(cat)
-        const servings = item.servings?.[cat]
-        const colorClass = isPositive
-          ? 'bg-quality-green/15 text-quality-green'
-          : 'bg-quality-red/15 text-quality-red'
-        return (
-          <span
-            key={cat}
-            className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${colorClass}`}
-          >
-            {CATEGORY_LABELS[cat]}
-            {servings !== undefined && cat !== 'ultra_processed' && ` · ${servings}`}
-          </span>
-        )
-      })}
-    </div>
-  )
-}
+import { FoodItem, MealType, MealContext, Meal } from '@/types'
+import { CategoryChips } from '@/components/dashboard/CategoryChips'
 
 const mealLabels: Record<MealType, string> = {
   breakfast: 'Breakfast',
@@ -183,7 +128,9 @@ function EditableFoodItem({
           {item.calories} cal · {item.protein}g P · {item.fiber}g F
           {item.quantity && ` · ${item.quantity}`}
         </p>
-        <CategoryChips item={item} />
+        <div className="mt-1">
+          <CategoryChips item={item} />
+        </div>
       </div>
       <div className="flex">
         <button

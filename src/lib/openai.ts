@@ -35,10 +35,10 @@ CATEGORY DEFINITIONS (an item can belong to multiple — e.g. "salad with olive 
 - "nut_seed": nuts (almonds, walnuts, pistachios, pecans, cashews) and seeds (chia, flax, pumpkin, sunflower). Nut butters count.
 - "healthy_fat": extra virgin olive oil, avocado, olives, fatty fish (salmon, sardines), nuts/seeds. Butter, coconut oil, industrial seed oils, and margarine do NOT qualify.
 - "fish_omega3": fatty fish (salmon, sardines, trout, herring, mackerel, anchovies). Lean white fish (tilapia, cod) does NOT qualify.
-- "red_meat": unprocessed beef, pork, lamb, bison, venison.
-- "processed_meat": bacon, sausage, hot dog, deli/lunch meat, salami, pepperoni, ham, jerky.
+- "red_meat": unprocessed BEEF, PORK, LAMB, BISON, VENISON, GOAT only. POULTRY IS NOT RED MEAT — chicken, turkey, duck, and goose belong to NO positive category in this scoring system (they are neutral, not counted). Meatballs/meatloaf default to red_meat UNLESS the name specifies poultry ("turkey meatballs", "chicken meatballs") in which case they are NOT red_meat.
+- "processed_meat": bacon, sausage, hot dog, deli/lunch meat, salami, pepperoni, ham, jerky, cured meats. Chicken sausage and turkey bacon still count as processed_meat.
 - "sugary_drink": soda, sweetened coffee drinks, sports drinks, energy drinks, fruit juice, lemonade, sweet tea.
-- "ultra_processed": NOVA group 4 — chips, candy, cookies, packaged snack bars, most fast food, frozen ready meals, sweetened cereals, instant noodles, processed cheese, sodas.
+- "ultra_processed": NOVA group 4 — chips, candy, cookies, packaged snack bars, most fast food, frozen ready meals, sweetened cereals, instant noodles, processed cheese, sodas. IMPORTANT: restaurant/takeout dishes that are BREADED AND FRIED (orange chicken, sesame chicken, general tso's, chicken nuggets, chicken tenders, popcorn chicken, tempura, fried fish sandwich, mozzarella sticks) ARE ultra_processed. Dishes with SWEETENED/SUGARY sauces as a primary flavor (orange chicken, sweet & sour, teriyaki glaze, BBQ sauce pulled-pork) ARE ultra_processed. White rice that accompanies these dishes is still just white rice (processed, not ultra_processed) — score each named item on its own merits.
 
 SERVING SIZE REFERENCE (estimate servings in these units):
 - vegetable/leafy_crucifer: 1 serving = 1/2 cup cooked OR 1 cup raw

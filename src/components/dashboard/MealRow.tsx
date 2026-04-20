@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Coffee, Sun, Moon, Cookie, Cake, Pencil, Trash2
 import { Meal, MealType, getProteinQuality, QualityLevel, DAILY_GOALS } from '@/types'
 import { cn } from '@/lib/utils'
 import { useSettings } from '@/components/settings/SettingsSheet'
+import { CategoryChips } from './CategoryChips'
 
 const mealIcons: Record<MealType, React.ReactNode> = {
   breakfast: <Coffee className="w-4 h-4" />,
@@ -210,6 +211,7 @@ export function MealRow({ meal, onEdit, onDelete }: MealRowProps) {
   const [expanded, setExpanded] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const settings = useSettings()
+  const isLongevity = settings.scoringMode === 'longevity'
 
   // Get goals from settings
   const calorieGoal = settings.calorieGoal || DAILY_GOALS.calories
@@ -249,24 +251,28 @@ export function MealRow({ meal, onEdit, onDelete }: MealRowProps) {
           <span className="font-medium">{mealLabels[meal.type]}</span>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex gap-3 text-sm">
+          <div className="flex gap-3 text-sm items-center">
             <span className="text-muted-foreground">{meal.totalCalories} cal</span>
-            <RatioMetric
-              value={meal.totalProtein}
-              unit="P"
-              calories={meal.totalCalories}
-              type="protein"
-              nutrientGoal={proteinGoal}
-              calorieGoal={calorieGoal}
-            />
-            <RatioMetric
-              value={meal.totalFiber}
-              unit="F"
-              calories={meal.totalCalories}
-              type="fiber"
-              nutrientGoal={fiberGoal}
-              calorieGoal={calorieGoal}
-            />
+            {!isLongevity && (
+              <>
+                <RatioMetric
+                  value={meal.totalProtein}
+                  unit="P"
+                  calories={meal.totalCalories}
+                  type="protein"
+                  nutrientGoal={proteinGoal}
+                  calorieGoal={calorieGoal}
+                />
+                <RatioMetric
+                  value={meal.totalFiber}
+                  unit="F"
+                  calories={meal.totalCalories}
+                  type="fiber"
+                  nutrientGoal={fiberGoal}
+                  calorieGoal={calorieGoal}
+                />
+              </>
+            )}
           </div>
           {expanded ? (
             <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -278,19 +284,36 @@ export function MealRow({ meal, onEdit, onDelete }: MealRowProps) {
 
       {expanded && (
         <div className="border-t bg-secondary/30 p-3 space-y-1.5">
-          {meal.items.map((item) => (
-            <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center text-sm">
-              <span className="truncate">
-                {item.name}
-                {item.quantity && (
-                  <span className="text-muted-foreground ml-1 text-xs">({item.quantity})</span>
-                )}
-              </span>
-              <span className="text-muted-foreground text-right w-14">{item.calories} cal</span>
-              <FoodRatioMetric value={item.protein} calories={item.calories} type="protein" nutrientGoal={proteinGoal} calorieGoal={calorieGoal} />
-              <FoodRatioMetric value={item.fiber} calories={item.calories} type="fiber" nutrientGoal={fiberGoal} calorieGoal={calorieGoal} />
-            </div>
-          ))}
+          {meal.items.map((item) =>
+            isLongevity ? (
+              <div key={item.id} className="flex items-start justify-between gap-2 text-sm py-1">
+                <div className="flex-1 min-w-0">
+                  <div className="truncate">
+                    {item.name}
+                    {item.quantity && (
+                      <span className="text-muted-foreground ml-1 text-xs">({item.quantity})</span>
+                    )}
+                  </div>
+                  <div className="mt-1">
+                    <CategoryChips item={item} />
+                  </div>
+                </div>
+                <span className="text-muted-foreground text-right text-xs whitespace-nowrap pt-0.5">{item.calories} cal</span>
+              </div>
+            ) : (
+              <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center text-sm">
+                <span className="truncate">
+                  {item.name}
+                  {item.quantity && (
+                    <span className="text-muted-foreground ml-1 text-xs">({item.quantity})</span>
+                  )}
+                </span>
+                <span className="text-muted-foreground text-right w-14">{item.calories} cal</span>
+                <FoodRatioMetric value={item.protein} calories={item.calories} type="protein" nutrientGoal={proteinGoal} calorieGoal={calorieGoal} />
+                <FoodRatioMetric value={item.fiber} calories={item.calories} type="fiber" nutrientGoal={fiberGoal} calorieGoal={calorieGoal} />
+              </div>
+            )
+          )}
           {meal.context?.notes && (
             <p className="text-sm text-muted-foreground italic mt-2 pt-2 border-t">
               {meal.context.notes}

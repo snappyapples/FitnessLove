@@ -7,8 +7,16 @@
  * Usage:
  *   APP_EMAIL="you@example.com" APP_PASSWORD="yourpass" node scripts/backfill-longevity.mjs
  *
- * Safe to re-run: only touches meals whose items lack a `categories` field.
- * Preserves existing calories/protein/fiber — only adds classification fields.
+ * Optional:
+ *   FORCE_TERMS="chicken,turkey,duck,poultry,meatball"
+ *     Re-process any meal whose item names include any of these substrings,
+ *     even if already classified. Useful when you tighten the prompt and
+ *     want to fix previously-misclassified items (e.g. poultry mislabeled
+ *     as red_meat). Case-insensitive. Comma-separated.
+ *
+ * Safe to re-run: only touches meals whose items lack categories OR match
+ * FORCE_TERMS. Preserves existing calories/protein/fiber — only updates
+ * classification fields.
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -19,6 +27,10 @@ dotenv.config({ path: 'C:/Users/justi/Documents/aiPersonal/FitnessLove/.env.loca
 
 const EMAIL = process.env.APP_EMAIL
 const PASSWORD = process.env.APP_PASSWORD
+const FORCE_TERMS = (process.env.FORCE_TERMS || '')
+  .split(',')
+  .map((t) => t.trim().toLowerCase())
+  .filter(Boolean)
 
 if (!EMAIL || !PASSWORD) {
   console.error('Set APP_EMAIL and APP_PASSWORD env vars.')
@@ -49,10 +61,10 @@ CATEGORIES:
 - "nut_seed": nuts, seeds, nut butters.
 - "healthy_fat": EVOO, avocado, olives, fatty fish, nuts/seeds. Butter/coconut oil do NOT qualify.
 - "fish_omega3": salmon, sardines, trout, herring, mackerel, anchovies. Lean white fish does NOT qualify.
-- "red_meat": unprocessed beef, pork, lamb, bison.
-- "processed_meat": bacon, sausage, hot dog, deli meat, salami, pepperoni, ham, jerky.
+- "red_meat": unprocessed BEEF, PORK, LAMB, BISON, VENISON, GOAT only. POULTRY IS NOT RED MEAT — chicken, turkey, duck, goose belong to NO positive category (they are neutral). Meatballs/meatloaf default to red_meat UNLESS the name says poultry ("turkey meatballs") in which case they are NOT red_meat.
+- "processed_meat": bacon, sausage, hot dog, deli meat, salami, pepperoni, ham, jerky. Chicken sausage and turkey bacon still count.
 - "sugary_drink": soda, sweetened drinks, fruit juice, sports/energy drinks.
-- "ultra_processed": NOVA group 4 — chips, candy, cookies, snack bars, fast food, frozen ready meals, sweetened cereal, processed cheese.
+- "ultra_processed": NOVA group 4 — chips, candy, cookies, snack bars, fast food, frozen ready meals, sweetened cereal, processed cheese. IMPORTANT: restaurant/takeout dishes that are BREADED AND FRIED (orange chicken, sesame chicken, general tso's, chicken nuggets, chicken tenders, popcorn chicken, tempura, fried fish sandwich) ARE ultra_processed. Dishes with SUGARY sauces (orange chicken, sweet & sour, teriyaki glaze, BBQ pulled-pork) ARE ultra_processed.
 
 SERVING SIZES:
 - vegetable/leafy_crucifer: 1/2 cup cooked OR 1 cup raw
@@ -79,9 +91,8 @@ async function classifyItems(items) {
   const input = items.map((it, i) => `${i + 1}. ${it.name} (${it.calories} cal${it.quantity ? `, ${it.quantity}` : ''})`).join('\n')
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-5-mini',
     messages: [{ role: 'user', content: CLASSIFY_PROMPT + input }],
-    temperature: 0.2,
   })
 
   const content = completion.choices[0]?.message?.content || '[]'
@@ -115,11 +126,24 @@ async function main() {
   }
   console.log(`Found ${meals.length} total meals.`)
 
-  // Only re-process meals where at least one item lacks categories
+  // Re-process meals where: any item lacks categories, OR (FORCE_TERMS set) any
+  // item name matches one of the terms.
   const toProcess = meals.filter((m) => {
     const items = Array.isArray(m.items) ? m.items : []
-    return items.some((it) => !it.categories)
+    const lacksCategories = items.some((it) => !it.categories)
+    if (lacksCategories) return true
+    if (FORCE_TERMS.length > 0) {
+      const hit = items.some((it) => {
+        const name = String(it.name || '').toLowerCase()
+        return FORCE_TERMS.some((term) => name.includes(term))
+      })
+      if (hit) return true
+    }
+    return false
   })
+  if (FORCE_TERMS.length > 0) {
+    console.log(`FORCE_TERMS active: [${FORCE_TERMS.join(', ')}]`)
+  }
   console.log(`${toProcess.length} meals need classification.\n`)
 
   let updated = 0
