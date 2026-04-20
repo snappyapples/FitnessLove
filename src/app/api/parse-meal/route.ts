@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
       protein: Math.round(item.protein || 0),
       fiber: Math.round(item.fiber || 0),
       quantity: item.quantity,
+      categories: Array.isArray(item.categories) ? item.categories : undefined,
+      servings: item.servings && typeof item.servings === 'object' ? item.servings : undefined,
+      processingLevel: item.processingLevel,
     }))
 
     return NextResponse.json({ items })

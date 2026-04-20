@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import type { ScoringMode } from '@/types'
 
 interface UserSettings {
   age: number
@@ -22,6 +23,7 @@ interface UserSettings {
   calorieGoal: number
   proteinGoal: number
   fiberGoal: number
+  scoringMode: ScoringMode
 }
 
 const defaultSettings: UserSettings = {
@@ -34,6 +36,7 @@ const defaultSettings: UserSettings = {
   calorieGoal: 2000,
   proteinGoal: 150,
   fiberGoal: 30,
+  scoringMode: 'longevity',
 }
 
 const activityLevels = [

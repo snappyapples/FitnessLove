@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, getServerUser } from '@/lib/supabase-server'
+import type { ScoringMode } from '@/types'
 
 interface UserSettings {
   age: number
@@ -11,6 +12,7 @@ interface UserSettings {
   calorieGoal: number
   proteinGoal: number
   fiberGoal: number
+  scoringMode: ScoringMode
 }
 
 const defaultSettings: UserSettings = {
@@ -23,6 +25,7 @@ const defaultSettings: UserSettings = {
   calorieGoal: 2000,
   proteinGoal: 150,
   fiberGoal: 30,
+  scoringMode: 'longevity',
 }
 
 // Helper to transform database row to settings
@@ -37,6 +40,7 @@ function dbRowToSettings(row: any): UserSettings {
     calorieGoal: row.calorie_goal,
     proteinGoal: row.protein_goal,
     fiberGoal: row.fiber_goal,
+    scoringMode: (row.scoring_mode as ScoringMode) ?? 'longevity',
   }
 }
 
@@ -92,6 +96,7 @@ export async function PUT(request: Request) {
         calorie_goal: settings.calorieGoal,
         protein_goal: settings.proteinGoal,
         fiber_goal: settings.fiberGoal,
+        scoring_mode: settings.scoringMode ?? 'longevity',
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id'

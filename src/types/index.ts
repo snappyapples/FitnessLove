@@ -1,3 +1,20 @@
+// Longevity scoring categories (adapted AHEI-2010)
+export type FoodCategory =
+  | 'vegetable'
+  | 'leafy_crucifer'       // counted ALSO as 'vegetable' (bonus subcategory)
+  | 'fruit'
+  | 'legume_soy'
+  | 'whole_grain'
+  | 'nut_seed'
+  | 'healthy_fat'          // EVOO, avocado, olives, fatty fish, nuts/seeds (fish/nuts double-count intentionally)
+  | 'fish_omega3'          // salmon, sardines, trout, herring, mackerel
+  | 'red_meat'             // beef, pork, lamb (unprocessed)
+  | 'processed_meat'       // bacon, sausage, deli meat, hot dog
+  | 'sugary_drink'         // soda, fruit juice, sweetened beverages
+  | 'ultra_processed'      // NOVA-4 foods: chips, candy, packaged snacks, fast food, etc.
+
+export type ProcessingLevel = 'whole' | 'minimal' | 'processed' | 'ultra_processed'
+
 export interface FoodItem {
   id: string
   name: string
@@ -5,6 +22,10 @@ export interface FoodItem {
   protein: number
   fiber: number
   quantity?: string
+  // Longevity scoring fields (optional for backwards compat; populated by parser going forward)
+  categories?: FoodCategory[]
+  servings?: Partial<Record<FoodCategory, number>>
+  processingLevel?: ProcessingLevel
 }
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'indulgence'
@@ -137,4 +158,52 @@ export interface MindfulnessReport {
     calmDelta: number | null      // percentage point change (null if no last week data)
     hungryDelta: number | null
   }
+}
+
+// Longevity scoring types
+export type ScoringMode = 'macros' | 'longevity'
+
+export interface LongevityComponentScore {
+  points: number     // earned points
+  max: number        // max possible points
+  value: number      // raw measured value (e.g. servings/1000 kcal, or % of kcal)
+}
+
+export interface LongevitySubscores {
+  plants: LongevityComponentScore        // veg + fruit + legumes + whole grains + nuts (max 50)
+  fatQuality: LongevityComponentScore    // healthy fat (max 10)
+  proteinQuality: LongevityComponentScore // fish/omega-3 (max 10)
+  harmReduction: LongevityComponentScore // sugary drinks + red meat + UPF (max 30)
+}
+
+export interface LongevityComponentBreakdown {
+  vegetables: LongevityComponentScore
+  fruit: LongevityComponentScore
+  legumes: LongevityComponentScore
+  wholeGrains: LongevityComponentScore
+  nutsSeeds: LongevityComponentScore
+  healthyFat: LongevityComponentScore
+  fish: LongevityComponentScore
+  sugaryDrinks: LongevityComponentScore
+  redProcessedMeat: LongevityComponentScore
+  ultraProcessed: LongevityComponentScore
+}
+
+export interface LongevityDailyScore {
+  date: string
+  totalScore: number  // 0-100
+  hasData: boolean    // false if no meals logged that day
+  components: LongevityComponentBreakdown
+  subscores: LongevitySubscores
+}
+
+export interface LongevityReport {
+  todayScore: LongevityDailyScore
+  rollingScore: number           // 7-day rolling avg (0-100)
+  rollingHasData: boolean        // true if at least 1 day has data in window
+  dailyScores: LongevityDailyScore[]  // last 7 days, most recent first
+  subscoresRolling: LongevitySubscores // rolling-window avg subscores
+  thisWeekAvg: number            // avg across last 7 days with data
+  lastWeekAvg: number | null     // avg across prior 7 days with data
+  weeklyDelta: number | null     // thisWeekAvg - lastWeekAvg
 }
