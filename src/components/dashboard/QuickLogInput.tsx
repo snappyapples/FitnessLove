@@ -1,0 +1,324 @@
+'use client'
+
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { Loader2, Sparkles, Utensils, Eye, Check, X, ChevronDown } from 'lucide-react'
+import { format } from 'date-fns'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import type { FoodItem, Meal, MealType } from '@/types'
+import { buildLongevityReport } from '@/lib/longevity-score'
+import { CategoryChips } from './CategoryChips'
+
+const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack']
+const MEAL_LABELS: Record<MealType, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snack',
+  indulgence: 'Indulgence',
+}
+
+function defaultMealType(now: Date = new Date()): MealType {
+  const h = now.getHours() + now.getMinutes() / 60
+  if (h >= 4 && h < 10.5) return 'breakfast'
+  if (h >= 10.5 && h < 15) return 'lunch'
+  if (h >= 15 && h < 20.5) return 'dinner'
+  return 'snack'
+}
+
+type Stage = 'idle' | 'parsed'
+type Intent = 'log' | 'evaluate'
+
+interface QuickLogInputProps {
+  meals: Meal[]
+  onSave: (type: MealType, date: string, items: FoodItem[]) => Promise<void>
+}
+
+export function QuickLogInput({ meals, onSave }: QuickLogInputProps) {
+  const [input, setInput] = useState('')
+  const [mealType, setMealType] = useState<MealType>(() => defaultMealType())
+  const [items, setItems] = useState<FoodItem[]>([])
+  const [parsing, setParsing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [intent, setIntent] = useState<Intent | null>(null)
+  const [stage, setStage] = useState<Stage>('idle')
+  const [error, setError] = useState<string | null>(null)
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const today = format(new Date(), 'yyyy-MM-dd')
+
+  useEffect(() => {
+    if (!typeMenuOpen) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setTypeMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [typeMenuOpen])
+
+  const preview = useMemo(() => {
+    if (stage !== 'parsed' || items.length === 0) return null
+    const baseReport = buildLongevityReport(meals, new Date())
+    const hypothetical: Meal = {
+      id: '__preview__',
+      date: today,
+      type: mealType,
+      items,
+      totalCalories: items.reduce((s, i) => s + (i.calories ?? 0), 0),
+      totalProtein: items.reduce((s, i) => s + (i.protein ?? 0), 0),
+      totalFiber: items.reduce((s, i) => s + (i.fiber ?? 0), 0),
+      createdAt: new Date().toISOString(),
+    }
+    const newReport = buildLongevityReport([...meals, hypothetical], new Date())
+    const todayBefore = baseReport.todayScore.hasData ? baseReport.todayScore.totalScore : 0
+    const todayAfter = newReport.todayScore.totalScore
+    const rollingBefore = baseReport.rollingScore
+    const rollingAfter = newReport.rollingScore
+    return {
+      todayBefore,
+      todayAfter,
+      todayDelta: Math.round((todayAfter - todayBefore) * 10) / 10,
+      rollingBefore,
+      rollingAfter,
+      rollingDelta: Math.round((rollingAfter - rollingBefore) * 10) / 10,
+    }
+  }, [stage, items, meals, today, mealType])
+
+  const handleParse = async (withIntent: Intent) => {
+    if (!input.trim() || parsing) return
+    setParsing(true)
+    setError(null)
+    setIntent(withIntent)
+    try {
+      const res = await fetch('/api/parse-meal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: input }),
+      })
+      if (!res.ok) throw new Error('Failed to parse')
+      const data = await res.json()
+      if (data.items?.length) {
+        setItems(data.items)
+        setStage('parsed')
+      } else {
+        setError('Could not parse that. Try more detail.')
+      }
+    } catch (err) {
+      console.error(err)
+      setError('Parse failed. Please try again.')
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  const resetAll = () => {
+    setInput('')
+    setItems([])
+    setStage('idle')
+    setIntent(null)
+    setError(null)
+    setMealType(defaultMealType())
+  }
+
+  const handleSave = async () => {
+    if (saving || items.length === 0) return
+    setSaving(true)
+    setError(null)
+    try {
+      await onSave(mealType, today, items)
+      resetAll()
+    } catch (err) {
+      console.error(err)
+      setError('Failed to save. Try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (stage === 'parsed') {
+    const isEval = intent === 'evaluate'
+    return (
+      <Card className="mb-4 p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">
+              {isEval ? 'Previewing' : 'Logging'} · {MEAL_LABELS[mealType]}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {isEval ? 'Not saved yet — review the impact below' : 'Review before saving'}
+            </div>
+          </div>
+          <button
+            onClick={resetAll}
+            className="p-1.5 rounded-md hover:bg-muted text-muted-foreground"
+            aria-label="Cancel"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-1.5 mb-3">
+          {items.map((item) => (
+            <div key={item.id} className="p-2 bg-secondary/50 rounded-md">
+              <div className="text-sm font-medium">{item.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {item.calories} cal
+                {item.quantity && ` · ${item.quantity}`}
+              </div>
+              <div className="mt-1">
+                <CategoryChips item={item} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {preview && (
+          <div className="grid grid-cols-2 gap-3 mb-3 p-3 rounded-md bg-primary/5 border border-primary/10">
+            <ScoreDeltaBlock
+              label="Today"
+              before={preview.todayBefore}
+              after={preview.todayAfter}
+              delta={preview.todayDelta}
+            />
+            <ScoreDeltaBlock
+              label="7-day avg"
+              before={preview.rollingBefore}
+              after={preview.rollingAfter}
+              delta={preview.rollingDelta}
+            />
+          </div>
+        )}
+
+        {error && <div className="mb-2 text-xs text-destructive">{error}</div>}
+
+        <div className="flex gap-2">
+          <Button onClick={handleSave} disabled={saving} className="flex-1" size="sm">
+            {saving ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Check className="w-4 h-4 mr-2" />
+            )}
+            {isEval ? 'Looks good, save' : 'Save'}
+          </Button>
+          <Button onClick={resetAll} disabled={saving} variant="outline" size="sm">
+            {isEval ? 'Skip' : 'Cancel'}
+          </Button>
+        </div>
+      </Card>
+    )
+  }
+
+  return (
+    <Card className="mb-4 p-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium">Quick log</span>
+        </div>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setTypeMenuOpen((v) => !v)}
+            className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-secondary hover:bg-secondary/70 transition-colors"
+          >
+            {MEAL_LABELS[mealType]}
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {typeMenuOpen && (
+            <div className="absolute right-0 top-full mt-1 z-10 bg-popover border rounded-md shadow-md overflow-hidden min-w-[110px]">
+              {MEAL_TYPES.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setMealType(t)
+                    setTypeMenuOpen(false)
+                  }}
+                  className={`block w-full text-left px-3 py-1.5 text-xs hover:bg-secondary ${
+                    t === mealType ? 'bg-secondary/50 font-medium' : ''
+                  }`}
+                >
+                  {MEAL_LABELS[t]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Textarea
+        placeholder="e.g., 2 eggs, oatmeal with berries, coffee"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        disabled={parsing}
+        className="min-h-[60px] mb-2"
+      />
+
+      {error && <div className="mb-2 text-xs text-destructive">{error}</div>}
+
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          onClick={() => handleParse('log')}
+          disabled={!input.trim() || parsing}
+          size="sm"
+        >
+          {parsing && intent === 'log' ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Utensils className="w-4 h-4 mr-2" />
+          )}
+          Log it
+        </Button>
+        <Button
+          onClick={() => handleParse('evaluate')}
+          disabled={!input.trim() || parsing}
+          variant="outline"
+          size="sm"
+        >
+          {parsing && intent === 'evaluate' ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Eye className="w-4 h-4 mr-2" />
+          )}
+          Evaluate
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
+function ScoreDeltaBlock({
+  label,
+  before,
+  after,
+  delta,
+}: {
+  label: string
+  before: number
+  after: number
+  delta: number
+}) {
+  const sign = delta > 0 ? '+' : ''
+  const color =
+    delta > 0.5
+      ? 'text-quality-green'
+      : delta < -0.5
+      ? 'text-quality-red'
+      : 'text-muted-foreground'
+  return (
+    <div>
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</div>
+      <div className="flex items-baseline gap-1.5 tabular-nums mt-0.5">
+        <span className="text-sm text-muted-foreground">{Math.round(before)}</span>
+        <span className="text-xs text-muted-foreground">→</span>
+        <span className="text-base font-semibold">{Math.round(after)}</span>
+        <span className={`text-xs font-medium ${color}`}>
+          {sign}
+          {delta.toFixed(1)}
+        </span>
+      </div>
+    </div>
+  )
+}

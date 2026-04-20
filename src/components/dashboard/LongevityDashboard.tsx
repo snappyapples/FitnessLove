@@ -10,6 +10,7 @@ import { LongevityScoreRing } from './LongevityScoreRing'
 import { LongevitySubscoreBar } from './LongevitySubscoreBar'
 import { LongevityDayCard } from './LongevityDayCard'
 import { LongevityHelpSheet } from './LongevityHelpSheet'
+import { QuickLogInput } from './QuickLogInput'
 import type { DayData, FoodItem, LongevityReport, Meal, MealContext, MealType } from '@/types'
 import { buildLongevityReport, getNextMealTip } from '@/lib/longevity-score'
 import { cn } from '@/lib/utils'
@@ -36,6 +37,7 @@ function DeltaBadge({ delta }: { delta: number | null }) {
 
 export function LongevityDashboard() {
   const [days, setDays] = useState<DayData[]>([])
+  const [allMeals, setAllMeals] = useState<Meal[]>([])
   const [report, setReport] = useState<LongevityReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,9 +55,10 @@ export function LongevityDashboard() {
       if (!res.ok) throw new Error('Failed to fetch meals')
       const data = await res.json()
       const allDays: DayData[] = data.days || []
-      const allMeals: Meal[] = allDays.flatMap((d) => d.meals)
+      const flattened: Meal[] = allDays.flatMap((d) => d.meals)
+      setAllMeals(flattened)
       setDays(allDays.slice(0, 7))
-      setReport(buildLongevityReport(allMeals, new Date()))
+      setReport(buildLongevityReport(flattened, new Date()))
     } catch (err) {
       console.error('Failed to fetch longevity data:', err)
       setError('Failed to load data. Please try again.')
@@ -130,6 +133,17 @@ export function LongevityDashboard() {
       console.error('Failed to save meal:', err)
       setError('Failed to save meal. Please try again.')
     }
+  }
+
+  const handleQuickSave = async (type: MealType, date: string, items: FoodItem[]) => {
+    setError(null)
+    const res = await fetch('/api/meals', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, date, items, context: {} }),
+    })
+    if (!res.ok) throw new Error('Failed to save meal')
+    await fetchData()
   }
 
   const handleSheetClose = (open: boolean) => {
@@ -230,6 +244,8 @@ export function LongevityDashboard() {
         </Card>
       )}
 
+      <QuickLogInput meals={allMeals} onSave={handleQuickSave} />
+
       <div className="space-y-4 pb-24">
         {days.map((day) => {
           const dayScore = scoresByDate.get(day.date)
@@ -263,6 +279,7 @@ export function LongevityDashboard() {
         mealType={selectedMealType}
         editingMeal={editingMeal}
         onSave={handleSaveMeal}
+        hideMindfulness
       />
     </>
   )

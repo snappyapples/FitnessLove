@@ -156,9 +156,10 @@ interface LogMealSheetProps {
   mealType: MealType | null
   editingMeal: Meal | null
   onSave: (items: FoodItem[], context: MealContext) => Promise<void>
+  hideMindfulness?: boolean
 }
 
-export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave }: LogMealSheetProps) {
+export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave, hideMindfulness = false }: LogMealSheetProps) {
   const [input, setInput] = useState('')
   const [items, setItems] = useState<FoodItem[]>([])
   const [parsing, setParsing] = useState(false)
@@ -305,58 +306,66 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
 
           {/* Context inputs */}
           <div className="space-y-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">
-                Hunger Level <span className="text-destructive">*</span>
-              </label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((level) => (
-                  <button
-                    key={level}
-                    onClick={() => setContext({ ...context, hungerLevel: level })}
-                    className={`flex-1 py-2 text-sm rounded-md border transition-colors ${
-                      context.hungerLevel === level
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-secondary'
-                    }`}
-                  >
-                    {level}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground min-h-[1rem]">
-                {context.hungerLevel ? hungerDescriptions[context.hungerLevel] : 'Select your hunger level before eating'}
-              </p>
-            </div>
+            {!hideMindfulness && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    Hunger Level <span className="text-destructive">*</span>
+                  </label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setContext({ ...context, hungerLevel: level })}
+                        className={`flex-1 py-2 text-sm rounded-md border transition-colors ${
+                          context.hungerLevel === level
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-secondary'
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground min-h-[1rem]">
+                    {context.hungerLevel ? hungerDescriptions[context.hungerLevel] : 'Select your hunger level before eating'}
+                  </p>
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">
-                Calm Level <span className="text-destructive">*</span>
-              </label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((level) => (
-                  <button
-                    key={level}
-                    onClick={() => setContext({ ...context, stressLevel: level })}
-                    className={`flex-1 py-2 text-sm rounded-md border transition-colors ${
-                      context.stressLevel === level
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-secondary'
-                    }`}
-                  >
-                    {level}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground min-h-[1rem]">
-                {context.stressLevel ? stressDescriptions[context.stressLevel] : 'Select your calm level at mealtime'}
-              </p>
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    Calm Level <span className="text-destructive">*</span>
+                  </label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setContext({ ...context, stressLevel: level })}
+                        className={`flex-1 py-2 text-sm rounded-md border transition-colors ${
+                          context.stressLevel === level
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-secondary'
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground min-h-[1rem]">
+                    {context.stressLevel ? stressDescriptions[context.stressLevel] : 'Select your calm level at mealtime'}
+                  </p>
+                </div>
+              </>
+            )}
 
             {/* Save button - moved up for accessibility */}
             <Button
               onClick={handleSave}
-              disabled={items.length === 0 || saving || context.hungerLevel === undefined || context.stressLevel === undefined}
+              disabled={
+                items.length === 0 ||
+                saving ||
+                (!hideMindfulness && (context.hungerLevel === undefined || context.stressLevel === undefined))
+              }
               className="w-full h-12 text-base font-medium"
               size="lg"
             >
@@ -366,24 +375,26 @@ export function LogMealSheet({ open, onOpenChange, mealType, editingMeal, onSave
               {isEditing ? 'Update' : 'Save'} {mealType ? mealLabels[mealType] : 'Meal'}
             </Button>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setContext({ ...context, ateWithOthers: !context.ateWithOthers })}
-                className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                  context.ateWithOthers
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-secondary'
-                }`}
-              >
-                Ate with others
-              </button>
-              <Input
-                placeholder="Notes..."
-                value={context.notes || ''}
-                onChange={(e) => setContext({ ...context, notes: e.target.value })}
-                className="flex-1 h-8 text-sm"
-              />
-            </div>
+            {!hideMindfulness && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setContext({ ...context, ateWithOthers: !context.ateWithOthers })}
+                  className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                    context.ateWithOthers
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-secondary'
+                  }`}
+                >
+                  Ate with others
+                </button>
+                <Input
+                  placeholder="Notes..."
+                  value={context.notes || ''}
+                  onChange={(e) => setContext({ ...context, notes: e.target.value })}
+                  className="flex-1 h-8 text-sm"
+                />
+              </div>
+            )}
           </div>
         </div>
       </SheetContent>
