@@ -34,13 +34,29 @@ interface Props {
 }
 
 export function CategoryChips({ item, size = 'xs' }: Props) {
-  const cats = item.categories ?? []
+  // Item was never classified (legacy meal pre-backfill) — render nothing.
+  if (item.categories === undefined) return null
+
+  const cats = item.categories
   const showUpfFromProcessing =
     item.processingLevel === 'ultra_processed' && !cats.includes('ultra_processed')
   const allChips: FoodCategory[] = showUpfFromProcessing ? [...cats, 'ultra_processed'] : cats
-  if (allChips.length === 0) return null
-
   const textSize = size === 'sm' ? 'text-xs' : 'text-[10px]'
+
+  if (allChips.length === 0) {
+    // Classifier evaluated the item but it doesn't fit any scoring category —
+    // show a neutral chip so the user sees it was processed, not forgotten.
+    return (
+      <div className="flex flex-wrap gap-1">
+        <span
+          className={`px-1.5 py-0.5 ${textSize} font-medium rounded bg-muted text-muted-foreground`}
+          title="No scoring impact"
+        >
+          Neutral
+        </span>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-wrap gap-1">
