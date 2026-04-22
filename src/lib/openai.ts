@@ -14,9 +14,9 @@ export function getOpenAI(): OpenAI {
   return openaiClient
 }
 
-export const PARSE_MEAL_PROMPT = `You are a nutrition and longevity-scoring expert. Parse the following food description into individual items.
+export const PARSE_MEAL_PROMPT = `You are a nutrition and longevity-scoring expert. Parse the following food description into individual ingredients. Decompose composite dishes into their components.
 
-For each item, return:
+For each ingredient, return:
 - name (string)
 - calories (number)
 - protein (grams, number)
@@ -26,7 +26,23 @@ For each item, return:
 - servings: an object mapping each applicable category to number of AHEI-style servings
 - processingLevel: one of "whole", "minimal", "processed", "ultra_processed"
 
-CATEGORY DEFINITIONS (an item can belong to multiple — e.g. "salad with olive oil and walnuts" hits vegetable + healthy_fat + nut_seed):
+DECOMPOSITION RULE (critical): Composite meals — salads, bowls, sandwiches, wraps, plates, platters, stir-fries, burritos, casseroles — MUST be decomposed into constituent ingredients, one item per ingredient. A single meal description often produces 3–6 items. DO NOT collapse a composite dish into one neutral item; that erases the scoring signal (the whole point of scoring is component-level accuracy).
+
+When the user names a well-known composite (e.g. "Costco rotisserie chicken salad", "chicken burrito bowl", "Cobb salad"), infer the typical ingredients and portions. The user can edit individual items after parsing, so make reasonable assumptions rather than returning a single less-accurate item.
+
+Example — "rotisserie chicken Costco green salad" decomposes into roughly:
+  1. "mixed greens" (~2 cups) → categories: ["vegetable", "leafy_crucifer"]
+  2. "grape tomatoes & cucumbers" (~1/2 cup) → categories: ["vegetable"]
+  3. "rotisserie chicken" (~4 oz) → categories: [] (poultry is neutral)
+  4. "bottled dressing" (~2 tbsp) → categories: ["ultra_processed"]
+  5. "parmesan / shredded cheese" (~1 tbsp) → categories: [] (processed, no scoring category)
+  6. "croutons" (~1/4 cup) → categories: [] (processed, no scoring category)
+
+When the description truly IS a single homogeneous item ("an apple", "bowl of oatmeal", "2 eggs", "a handful of walnuts"), return one item. Use judgment — "oatmeal with berries" is a simple topping and can stay as one item with [whole_grain, fruit] categories; "oatmeal with berries, walnuts, and yogurt" has enough distinguishable components to decompose.
+
+DRESSINGS, SAUCES, CONDIMENTS: When a composite dish is decomposed, always include its dressing/sauce as a separate item. Commercial bottled dressings and sauces (ranch, Caesar, thousand island, bottled vinaigrettes, BBQ, teriyaki, sweet-and-sour, mayo-based sauces, ketchup) default to ultra_processed. Pure olive oil or oil-and-vinegar is healthy_fat (EVOO) or minimal. If the user doesn't specify which dressing, assume a commercial bottled one (ultra_processed) since that's typical of restaurant/store salads.
+
+CATEGORY DEFINITIONS (an ingredient can belong to multiple — e.g. walnuts hit nut_seed + healthy_fat; salmon hits fish_omega3 + healthy_fat):
 - "vegetable": any non-starchy vegetable (broccoli, spinach, peppers, tomato, cucumber, zucchini, etc.). Potatoes are NOT a vegetable in AHEI scoring.
 - "leafy_crucifer": leafy greens (spinach, kale, arugula, romaine) or crucifers (broccoli, cauliflower, cabbage, brussels sprouts). If this applies, ALSO include "vegetable".
 - "fruit": whole fruit (berries, apple, banana, orange, melon). Fruit juice is NOT fruit — it's a "sugary_drink".

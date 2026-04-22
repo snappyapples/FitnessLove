@@ -98,7 +98,7 @@ LongevityDashboard renders: 7-day ring, today's score, subscores, day cards, tip
 
 ## Categories
 
-Stored on each `FoodItem` under the `categories` field. An item can belong to multiple (e.g. salad with olive oil and walnuts → `vegetable` + `healthy_fat` + `nut_seed`).
+Stored on each `FoodItem` under the `categories` field. An item can belong to multiple (e.g. walnuts → `nut_seed` + `healthy_fat`; salmon → `fish_omega3` + `healthy_fat`). Composite dishes with distinguishable ingredients are decomposed into multiple items, each with its own categories — see next section.
 
 | Category | Notes |
 |---|---|
@@ -116,6 +116,17 @@ Stored on each `FoodItem` under the `categories` field. An item can belong to mu
 | `ultra_processed` | NOVA group 4: chips, candy, cookies, packaged snacks, fast food, frozen ready meals, sweetened cereals. Includes breaded/fried takeout (orange chicken, nuggets, tempura) and sugary-sauced dishes. |
 
 See [src/lib/openai.ts](../src/lib/openai.ts) `PARSE_MEAL_PROMPT` for the full classification rules.
+
+### Composite meal decomposition
+
+When the user describes a composite dish — salad, bowl, sandwich, wrap, plate, burrito, stir-fry — the parser **decomposes** it into constituent ingredients, one `FoodItem` per ingredient. A single meal description often produces 3–6 items.
+
+The reason: one-item-per-dish erases the scoring signal. A "rotisserie chicken salad" isn't neutral — it's roughly [mixed greens (vegetable/leafy_crucifer) + tomatoes (vegetable) + chicken (neutral) + bottled dressing (ultra_processed) + parmesan/croutons (neutral)]. Those components land in different scoring buckets and that's what makes the score meaningful.
+
+Guidance in the prompt:
+- Decompose well-known composites by inferring typical ingredients and portions (the user can edit the parsed items before saving).
+- Always surface the dressing/sauce as its own item. Commercial bottled dressings (ranch, Caesar, vinaigrettes, BBQ, teriyaki, mayo) default to `ultra_processed`. Pure EVOO or oil+vinegar is `healthy_fat`.
+- Simple single items ("apple", "2 eggs", "oatmeal with berries") remain one item — judgment applies.
 
 ### Neutral items
 
