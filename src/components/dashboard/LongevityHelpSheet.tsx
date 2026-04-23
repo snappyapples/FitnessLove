@@ -105,57 +105,33 @@ export function LongevityHelpSheet() {
             </p>
           </section>
 
-          {/* Subscores */}
+          {/* What to eat next */}
           <section className="space-y-2">
-            <h3 className="font-semibold text-base">What the subscores mean</h3>
-            <dl className="space-y-2">
-              <div>
-                <dt className="font-medium">
-                  Plants <span className="text-muted-foreground font-normal">(0–50)</span>
-                </dt>
-                <dd className="text-sm text-muted-foreground">
-                  Vegetables + fruit + legumes + whole grains + nuts/seeds. Half the whole score — the strongest
-                  longevity lever. Evaluated across the rolling 7-day window, so one big salad day can offset a
-                  light one.
-                </dd>
-              </div>
-              <div>
-                <dt className="font-medium">
-                  Fat Quality <span className="text-muted-foreground font-normal">(0–10)</span>
-                </dt>
-                <dd className="text-sm text-muted-foreground">
-                  Servings of EVOO, avocado, olives, fatty fish, nuts/seeds. Emphasizes fat{' '}
-                  <em>quality</em> over avoiding fat.
-                </dd>
-              </div>
-              <div>
-                <dt className="font-medium">
-                  Protein Quality <span className="text-muted-foreground font-normal">(0–10)</span>
-                </dt>
-                <dd className="text-sm text-muted-foreground">
-                  Fatty fish servings over the past 7 days. 2 servings/week hits the full target (salmon,
-                  sardines, mackerel, trout, herring, anchovies).
-                </dd>
-              </div>
-              <div>
-                <dt className="font-medium">
-                  Harm Reduction <span className="text-muted-foreground font-normal">(0–30)</span>
-                </dt>
-                <dd className="text-sm text-muted-foreground">
-                  Reverse-scored: starts at 30 and drops for sugary drinks, red/processed meat, and
-                  ultra-processed foods. Processed meat counts 2× red meat.
-                </dd>
-              </div>
-            </dl>
+            <h3 className="font-semibold text-base">&ldquo;What to eat next&rdquo; list</h3>
+            <p className="text-sm text-muted-foreground">
+              Below the score ring, every component is ranked by its current gap (max − current), biggest gap
+              first. Each row shows the component&apos;s points, a bar, and a concrete food suggestion. A{' '}
+              <span className="text-primary font-semibold">Top gap</span> tag highlights the #1 lever — the
+              single thing that&apos;ll earn you the most points per bite. Components within 0.5 points of max
+              collapse into a &ldquo;dialed in&rdquo; footer so the list stays focused on what still matters.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Green <span className="font-medium">+</span> icons are &ldquo;add more&rdquo; components (veg,
+              fruit, legumes, whole grains, nuts/seeds, healthy fat, fish). Red{' '}
+              <span className="font-medium">−</span> icons are &ldquo;cut back&rdquo; components (sugary
+              drinks, red/processed meat, ultra-processed foods).
+            </p>
           </section>
 
-          {/* Next best bite */}
+          {/* Subscores (still shown in per-day cards) */}
           <section className="space-y-2">
-            <h3 className="font-semibold text-base">&ldquo;Next best bite&rdquo; tip</h3>
+            <h3 className="font-semibold text-base">Day cards: 4 subscores</h3>
             <p className="text-sm text-muted-foreground">
-              The tip under your score card points at the scoring component with the biggest gap between its
-              current value (over the last 7 days) and its max. Acting on it gives you the most points for the
-              least effort — usually a plants gap early on, then fish or fat quality as you dial things in.
+              On each per-day card you&apos;ll still see four grouped subscores — Plants (0–50; veg + fruit +
+              legumes + whole grains + nuts), Fat Quality (0–10; EVOO / avocado / olives / fatty fish), Protein
+              Quality (0–10; fatty fish rolling-7-day), and Harm Reduction (0–30; reverse-scored drinks / red
+              meat / UPF). These are useful for spotting patterns across the week but aren&apos;t the headline
+              metric anymore.
             </p>
           </section>
 

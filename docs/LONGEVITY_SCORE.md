@@ -54,7 +54,8 @@ LongevityDashboard renders: 7-day ring, today's score, subscores, day cards, tip
 | [src/components/dashboard/LongevityDashboard.tsx](../src/components/dashboard/LongevityDashboard.tsx) | Main longevity view: score card, subscores, tip, day list |
 | [src/components/dashboard/LongevityDayCard.tsx](../src/components/dashboard/LongevityDayCard.tsx) | Per-day card with score ring + subscore bars + meals |
 | [src/components/dashboard/LongevityScoreRing.tsx](../src/components/dashboard/LongevityScoreRing.tsx) | Reusable 0-100 ring (used in header + day cards) |
-| [src/components/dashboard/LongevitySubscoreBar.tsx](../src/components/dashboard/LongevitySubscoreBar.tsx) | Horizontal filled bar for subscore display |
+| [src/components/dashboard/LongevitySubscoreBar.tsx](../src/components/dashboard/LongevitySubscoreBar.tsx) | Horizontal filled bar for subscore display (used only in day cards now) |
+| [src/components/dashboard/LongevityComponentList.tsx](../src/components/dashboard/LongevityComponentList.tsx) | Ranked 10-component list with tips, add/avoid icons, expand, and "dialed in" footer. Replaces the 4 subscore bars + Next-best-bite callout on the main card |
 | [src/components/dashboard/LongevityHelpSheet.tsx](../src/components/dashboard/LongevityHelpSheet.tsx) | In-app explainer reachable via `?` button |
 | [src/components/dashboard/QuickLogInput.tsx](../src/components/dashboard/QuickLogInput.tsx) | Inline quick-add card rendered between the score ring and the day list. "Log it" and "Evaluate" flows; rolling-score delta + per-component gain chips |
 | [src/components/logging/LogMealSheet.tsx](../src/components/logging/LogMealSheet.tsx) | Full-sheet meal editor. Accepts `hideMindfulness` to drop the hunger/calm inputs (used in longevity mode) |
@@ -157,6 +158,10 @@ Scores an arbitrary rolling window of items. Positive components are density-nor
 ### `scoreDay(date, agg, fishServingsLast7Days)`
 
 Scores a single day (for day-card display only). Internally delegates to the same core computation as `scoreWindow` with `windowDays=1` and an externally-supplied 7-day fish count.
+
+### `getRankedComponentTips(report: LongevityReport)`
+
+Returns all 10 scoring components as `ComponentTip[]`, sorted by gap (max − current) descending. Ties broken by higher `max` first. Returns `[]` when the report has no data. Each tip includes `label`, `current`, `max`, `gapPoints`, `suggestion`, and `kind: 'add' | 'avoid'` so the UI can render it with the right icon (green `+` vs red `−`). Consumed by `LongevityComponentList` on the main dashboard card.
 
 ### `getNextMealTip(report: LongevityReport)`
 

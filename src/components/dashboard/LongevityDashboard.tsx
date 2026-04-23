@@ -2,17 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { isToday, format } from 'date-fns'
-import { TrendingUp, TrendingDown, Minus, Lightbulb } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { FloatingAddButton } from '../FloatingAddButton'
 import { LogMealSheet } from '../logging/LogMealSheet'
 import { LongevityScoreRing } from './LongevityScoreRing'
-import { LongevitySubscoreBar } from './LongevitySubscoreBar'
 import { LongevityDayCard } from './LongevityDayCard'
 import { LongevityHelpSheet } from './LongevityHelpSheet'
+import { LongevityComponentList } from './LongevityComponentList'
 import { QuickLogInput } from './QuickLogInput'
 import type { DayData, FoodItem, LongevityReport, Meal, MealContext, MealType } from '@/types'
-import { buildLongevityReport, getNextMealTip } from '@/lib/longevity-score'
+import { buildLongevityReport } from '@/lib/longevity-score'
 import { cn } from '@/lib/utils'
 
 function DeltaBadge({ delta }: { delta: number | null }) {
@@ -207,37 +207,7 @@ export function LongevityDashboard() {
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-2">
-            <LongevitySubscoreBar label="Plants" score={report.subscoresRolling.plants} />
-            <LongevitySubscoreBar label="Fat Quality" score={report.subscoresRolling.fatQuality} />
-            <LongevitySubscoreBar label="Protein (fish)" score={report.subscoresRolling.proteinQuality} />
-            <LongevitySubscoreBar label="Harm Reduction" score={report.subscoresRolling.harmReduction} />
-          </div>
-
-          {/* Next-best-bite tip */}
-          {(() => {
-            const tip = getNextMealTip(report)
-            if (tip.component === 'none' || tip.gapPoints < 0.5) return null
-            return (
-              <div className="mt-4 pt-4 border-t flex items-start gap-3">
-                <div className="shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Lightbulb className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Next best bite
-                    <span className="ml-1.5 text-primary normal-case font-semibold tabular-nums text-sm">
-                      +{tip.gapPoints.toFixed(1)} pts available
-                    </span>
-                  </div>
-                  <div className="text-base mt-1 leading-snug">
-                    <span className="font-semibold">{tip.label}:</span>{' '}
-                    <span className="text-muted-foreground">{tip.suggestion}</span>
-                  </div>
-                </div>
-              </div>
-            )
-          })()}
+          <LongevityComponentList report={report} />
         </Card>
       )}
 

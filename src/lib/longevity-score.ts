@@ -352,139 +352,134 @@ export function buildLongevityReport(meals: Meal[], today: Date = new Date()): L
 }
 
 /**
- * Returns the single highest-impact food recommendation to improve the
- * rolling score. Reads component gaps directly from the current window.
+ * Component-level tip: a single scoring component's current state, the gap
+ * to its max, a concrete food suggestion, and whether the action is to add
+ * more of it or cut back.
  */
-export interface NextMealTip {
-  component:
-    | 'vegetables'
-    | 'fruit'
-    | 'legumes'
-    | 'wholeGrains'
-    | 'nutsSeeds'
-    | 'healthyFat'
-    | 'fish'
-    | 'sugaryDrinks'
-    | 'redProcessedMeat'
-    | 'ultraProcessed'
-    | 'none'
+export type ComponentId =
+  | 'vegetables'
+  | 'fruit'
+  | 'legumes'
+  | 'wholeGrains'
+  | 'nutsSeeds'
+  | 'healthyFat'
+  | 'fish'
+  | 'sugaryDrinks'
+  | 'redProcessedMeat'
+  | 'ultraProcessed'
+
+export interface ComponentTip {
+  component: ComponentId
   label: string
-  gapPoints: number
+  current: number      // earned points
+  max: number          // max points
+  gapPoints: number    // max - current, rounded to 0.1
   suggestion: string
   kind: 'add' | 'avoid'
 }
 
-export function getNextMealTip(report: LongevityReport): NextMealTip {
-  if (!report.rollingHasData) {
-    return {
-      component: 'none',
-      label: '',
-      gapPoints: 0,
-      suggestion: 'Log a meal to get a personalized tip.',
-      kind: 'add',
-    }
-  }
+interface ComponentMeta {
+  id: ComponentId
+  label: string
+  kind: 'add' | 'avoid'
+  suggestion: string
+}
+
+const COMPONENT_META: ComponentMeta[] = [
+  {
+    id: 'vegetables',
+    label: 'Vegetables',
+    kind: 'add',
+    suggestion: 'Add a 1-cup salad or ½ cup roasted broccoli/cauliflower to your next meal.',
+  },
+  {
+    id: 'fruit',
+    label: 'Fruit',
+    kind: 'add',
+    suggestion: 'Grab a piece of whole fruit or ½ cup berries — berries punch above their weight.',
+  },
+  {
+    id: 'legumes',
+    label: 'Legumes / Soy',
+    kind: 'add',
+    suggestion: 'Add ½ cup beans, lentils, or 4 oz tofu to your next meal.',
+  },
+  {
+    id: 'wholeGrains',
+    label: 'Whole grains',
+    kind: 'add',
+    suggestion: 'Swap white rice/bread for oats, quinoa, brown rice, or 100% whole-wheat bread.',
+  },
+  {
+    id: 'nutsSeeds',
+    label: 'Nuts / Seeds',
+    kind: 'add',
+    suggestion: 'Have a 1 oz handful of walnuts, almonds, or pistachios as a snack.',
+  },
+  {
+    id: 'healthyFat',
+    label: 'Healthy fat',
+    kind: 'add',
+    suggestion: 'Drizzle 1 tbsp extra-virgin olive oil on your next meal, or add ½ avocado.',
+  },
+  {
+    id: 'fish',
+    label: 'Fish',
+    kind: 'add',
+    suggestion: 'Plan a 3.5 oz serving of salmon, sardines, or mackerel — 2 servings/week maxes this out.',
+  },
+  {
+    id: 'sugaryDrinks',
+    label: 'Sugary drinks',
+    kind: 'avoid',
+    suggestion: 'Swap sweetened drinks (soda, juice, sweet coffee) for water, sparkling water, or unsweetened tea.',
+  },
+  {
+    id: 'redProcessedMeat',
+    label: 'Red / processed meat',
+    kind: 'avoid',
+    suggestion: 'Swap red meat or deli meat for poultry, fish, tofu, or beans at your next meal.',
+  },
+  {
+    id: 'ultraProcessed',
+    label: 'Ultra-processed',
+    kind: 'avoid',
+    suggestion: 'Skip packaged snacks, fast food, and sweetened cereals — pick fruit, nuts, or yogurt.',
+  },
+]
+
+/**
+ * Returns all 10 components ranked by gap (max - current), descending.
+ * Ties broken by higher `max` first (more upside). Returns an empty array
+ * when the report has no data in the rolling window.
+ *
+ * Callers typically show the top rows as "what to eat next" and collapse
+ * components at or near their max into a "dialed in" summary.
+ */
+export function getRankedComponentTips(report: LongevityReport): ComponentTip[] {
+  if (!report.rollingHasData) return []
 
   const c = report.componentsRolling
 
-  const candidates = [
-    {
-      id: 'vegetables' as const,
-      label: 'Vegetables',
-      max: c.vegetables.max,
-      current: c.vegetables.points,
-      kind: 'add' as const,
-      suggestion: 'Add a 1-cup salad or ½ cup roasted broccoli/cauliflower to your next meal.',
-    },
-    {
-      id: 'fruit' as const,
-      label: 'Fruit',
-      max: c.fruit.max,
-      current: c.fruit.points,
-      kind: 'add' as const,
-      suggestion: 'Grab a piece of whole fruit or ½ cup berries — berries punch above their weight.',
-    },
-    {
-      id: 'legumes' as const,
-      label: 'Legumes / Soy',
-      max: c.legumes.max,
-      current: c.legumes.points,
-      kind: 'add' as const,
-      suggestion: 'Add ½ cup beans, lentils, or 4 oz tofu to your next meal.',
-    },
-    {
-      id: 'wholeGrains' as const,
-      label: 'Whole grains',
-      max: c.wholeGrains.max,
-      current: c.wholeGrains.points,
-      kind: 'add' as const,
-      suggestion: 'Swap white rice/bread for oats, quinoa, brown rice, or 100% whole-wheat bread.',
-    },
-    {
-      id: 'nutsSeeds' as const,
-      label: 'Nuts / Seeds',
-      max: c.nutsSeeds.max,
-      current: c.nutsSeeds.points,
-      kind: 'add' as const,
-      suggestion: 'Have a 1 oz handful of walnuts, almonds, or pistachios as a snack.',
-    },
-    {
-      id: 'healthyFat' as const,
-      label: 'Healthy fat',
-      max: c.healthyFat.max,
-      current: c.healthyFat.points,
-      kind: 'add' as const,
-      suggestion: 'Drizzle 1 tbsp extra-virgin olive oil on your next meal, or add ½ avocado.',
-    },
-    {
-      id: 'fish' as const,
-      label: 'Fish',
-      max: c.fish.max,
-      current: c.fish.points,
-      kind: 'add' as const,
-      suggestion: 'Plan a 3.5 oz serving of salmon, sardines, or mackerel this week — 2 servings maxes this out.',
-    },
-    {
-      id: 'sugaryDrinks' as const,
-      label: 'Sugary drinks',
-      max: c.sugaryDrinks.max,
-      current: c.sugaryDrinks.points,
-      kind: 'avoid' as const,
-      suggestion: 'Swap sweetened drinks (soda, juice, sweet coffee) for water, sparkling water, or unsweetened tea.',
-    },
-    {
-      id: 'redProcessedMeat' as const,
-      label: 'Red / processed meat',
-      max: c.redProcessedMeat.max,
-      current: c.redProcessedMeat.points,
-      kind: 'avoid' as const,
-      suggestion: 'Swap red meat or deli meat for poultry, fish, tofu, or beans at your next meal.',
-    },
-    {
-      id: 'ultraProcessed' as const,
-      label: 'Ultra-processed',
-      max: c.ultraProcessed.max,
-      current: c.ultraProcessed.points,
-      kind: 'avoid' as const,
-      suggestion: 'Skip packaged snacks, fast food, and sweetened cereals — pick fruit, nuts, or yogurt.',
-    },
-  ]
-
-  let best = candidates[0]
-  let bestGap = best.max - best.current
-  for (const cand of candidates.slice(1)) {
-    const gap = cand.max - cand.current
-    if (gap > bestGap + 0.01 || (Math.abs(gap - bestGap) < 0.01 && cand.max > best.max)) {
-      best = cand
-      bestGap = gap
+  const tips: ComponentTip[] = COMPONENT_META.map((meta) => {
+    const comp = c[meta.id]
+    const gap = Math.round((comp.max - comp.points) * 10) / 10
+    return {
+      component: meta.id,
+      label: meta.label,
+      current: comp.points,
+      max: comp.max,
+      gapPoints: gap,
+      suggestion: meta.suggestion,
+      kind: meta.kind,
     }
-  }
+  })
 
-  return {
-    component: best.id,
-    label: best.label,
-    gapPoints: Math.round(bestGap * 10) / 10,
-    suggestion: best.suggestion,
-    kind: best.kind,
-  }
+  tips.sort((a, b) => {
+    const gapDiff = b.gapPoints - a.gapPoints
+    if (Math.abs(gapDiff) > 0.01) return gapDiff
+    return b.max - a.max
+  })
+
+  return tips
 }
