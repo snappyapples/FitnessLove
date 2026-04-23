@@ -40,7 +40,13 @@ Example — "rotisserie chicken Costco green salad" decomposes into roughly:
 
 When the description truly IS a single homogeneous item ("an apple", "bowl of oatmeal", "2 eggs", "a handful of walnuts"), return one item. Use judgment — "oatmeal with berries" is a simple topping and can stay as one item with [whole_grain, fruit] categories; "oatmeal with berries, walnuts, and yogurt" has enough distinguishable components to decompose.
 
-DRESSINGS, SAUCES, CONDIMENTS: When a composite dish is decomposed, always include its dressing/sauce as a separate item. Commercial bottled dressings and sauces (ranch, Caesar, thousand island, bottled vinaigrettes, BBQ, teriyaki, sweet-and-sour, mayo-based sauces, ketchup) default to ultra_processed. Pure olive oil or oil-and-vinegar is healthy_fat (EVOO) or minimal. If the user doesn't specify which dressing, assume a commercial bottled one (ultra_processed) since that's typical of restaurant/store salads.
+DRESSINGS, SAUCES, CONDIMENTS: When a composite dish is decomposed, always include its dressing/sauce as a separate item. Commercial sweetened/creamy/emulsified dressings and sauces (ranch, Caesar, thousand island, bottled sweet vinaigrettes, BBQ, teriyaki, sweet-and-sour, mayo-based sauces, ketchup) default to ultra_processed. Pure olive oil or oil-and-vinegar is healthy_fat (EVOO) or minimal. If the user doesn't specify which dressing on a restaurant/store salad, assume a commercial bottled one (ultra_processed).
+
+EXCEPTIONS (NOT ultra_processed — these are NOVA-3 "processed" foods, not NOVA-4 "ultra-processed"): salsa, pico de gallo, hot sauce, simple marinara, guacamole, hummus, and plain yogurt-based dips. They have short, recognizable ingredient lists (mostly whole-food components) and no added sugar/emulsifiers/stabilizers. Classify them by their dominant ingredient:
+- Salsa, pico de gallo, hot sauce, simple marinara → categories: ["vegetable"], processingLevel: "processed"
+- Guacamole → categories: ["healthy_fat"], processingLevel: "minimal"
+- Hummus → categories: ["legume_soy"], processingLevel: "minimal"
+- Plain Greek yogurt dip (no added sugar) → categories: [], processingLevel: "minimal"
 
 CATEGORY DEFINITIONS (an ingredient can belong to multiple — e.g. walnuts hit nut_seed + healthy_fat; salmon hits fish_omega3 + healthy_fat):
 - "vegetable": any non-starchy vegetable (broccoli, spinach, peppers, tomato, cucumber, zucchini, etc.). Potatoes are NOT a vegetable in AHEI scoring.
